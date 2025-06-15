@@ -1,1 +1,6 @@
 torch>=2.0.0
+numpy~=2.3.0
+pandas
+requests~=2.32.4
+setuptools~=80.9.0
+tqdm~=4.67.1
