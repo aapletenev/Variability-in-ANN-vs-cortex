@@ -1,4 +1,5 @@
-# Foundation model of neural activity predicts response to new stimulus types and anatomy
+#### Code taken from cajal/fnn repository
+Foundation model of neural activity predicts response to new stimulus types and anatomy
 
 [[`Paper`](https://www.nature.com/articles/s41586-025-08829-y)] [[`BibTeX`](#Citation)]
 
