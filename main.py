@@ -12,4 +12,5 @@ frames = concatenate([
 ])
 
 # predict the response of neurons to the 3-second video
-print(response = model.predict(stimuli=frames))
+response = model.predict(stimuli=frames)
+print(response)
