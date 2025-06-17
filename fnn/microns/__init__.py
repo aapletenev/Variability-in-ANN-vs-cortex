@@ -97,11 +97,24 @@ def scan(session, scan_idx, cuda=True, directory=None, verbose=True):
 
     return model, load(unit_ids)
 
-download(URL, os.path.join(os.getcwd(),"microns","v1_weights_metadata.zip")) # RUN ONLY IF YOU DON'T HAVE ZIP FILE ON COMPUTER ALREADY 
-# once zip file is downloaded make sure it is in same folder as this file or adjust directory as needed
-pred_model, table = scan(4,7) # look at data/microns/scans.csv for numbers that work
 
-print("Scan Information\n")
-print(table)
-print("Model Information\n")
-print(pred_model)
+# Download instruction from josh
+pred_model, table = scan(4,7, directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
+
+print("Scan Information")
+try:
+    print(f"Shape: {table.shape}, Columns: {table.columns}")
+except Exception as e: print("Error: ",e)
+
+
+# test prediction
+from numpy import concatenate, full
+
+frames = concatenate([
+    full(shape=[30, 144, 256], dtype="uint8", fill_value=0),   # 1 second of black
+    full(shape=[30, 144, 256], dtype="uint8", fill_value=128), # 1 second of gray
+    full(shape=[30, 144, 256], dtype="uint8", fill_value=255), # 1 second of white
+])
+
+results = pred_model.predict(stimuli = frames)
+print(f"Results: ",results)
