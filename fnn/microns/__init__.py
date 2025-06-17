@@ -97,3 +97,7 @@ def scan(session, scan_idx, cuda=True, directory=None, verbose=True):
         model.to(device="cuda")
 
     return model, load(unit_ids)
+
+file_path = os.getcwd()
+print(file_path)
+# download(URL, os.getcwd().join("\\test_network.py"))
