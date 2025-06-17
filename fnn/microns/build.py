@@ -27,6 +27,7 @@ def network(units):
     fnn.model.networks.Visual
         visual neural network
     """
+    # core component
     feedforward = InputDense(
         input_spatial=6,
         input_stride=2,
@@ -39,6 +40,7 @@ def network(units):
         out_channels=128,
         nonlinear="gelu",
     )
+    # core component, transforms input from perspective+modulation to produce feature representations
     recurrent = CvtLstm(
         in_channels=256,
         out_channels=128,
@@ -47,10 +49,12 @@ def network(units):
         groups=8,
         spatial=3,
     )
+    # 3rd layer of ann
     core = FeedforwardRecurrent(
         feedforward=feedforward,
         recurrent=recurrent,
     )
+    # 1st layer of ann, infers perspective from retina
     perspective = MlpMonitorRetina(
         mlp_features=16,
         mlp_layers=3,
@@ -62,17 +66,21 @@ def network(units):
         retina=Angular(degrees=75),
         retina_pixel=SigmoidPower(),
     )
+    # 2nd layer, transforms behavioral var. to produce dynamic state of mouse
     modulation = MlpLstm(
         mlp_features=16,
         mlp_layers=1,
         mlp_nonlinear="gelu",
         lstm_features=16,
     )
+    # 4th layer of ann, maps core's outputs onto activity of indivudual neurons 
     readout = PositionFeature(
         position=Gaussian(),
         bound=Tanh(),
         feature=Vanilla(),
     )
+
+
     network = Visual(
         core=core,
         perspective=perspective,
