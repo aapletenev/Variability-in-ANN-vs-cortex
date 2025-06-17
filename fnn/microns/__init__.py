@@ -97,6 +97,11 @@ def scan(session, scan_idx, cuda=True, directory=None, verbose=True):
 
     return model, load(unit_ids)
 
-f_path = os.getcwd()
+download(URL, os.path.join(os.getcwd(),"microns","v1_weights_metadata.zip")) # RUN ONLY IF YOU DON'T HAVE ZIP FILE ON COMPUTER ALREADY 
+# once zip file is downloaded make sure it is in same folder as this file or adjust directory as needed
+pred_model, table = scan(4,7) # look at data/microns/scans.csv for numbers that work
 
-if __name__ == "__main__": download(URL, str(f_path+"\\test_params.pth"))
+print("Scan Information\n")
+print(table)
+print("Model Information\n")
+print(pred_model)
