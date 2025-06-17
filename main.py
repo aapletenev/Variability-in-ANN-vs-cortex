@@ -10,7 +10,7 @@ print(f"model type: {type(model)}")  #model is fnn.model.networks.Visual
 print(f"ids type: {type(ids)}, with shape {ids.shape}")  # ids are dataframe with shape (9941, 3)
 
 ##adding this to inspect their input data
-print(ids.head())
+#print(ids.head())
 
 # example 3-second video (3 x 30 frames @ 30 FPS, 144 height, 256 width)
 frames = concatenate([

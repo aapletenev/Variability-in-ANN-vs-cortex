@@ -9,9 +9,8 @@ from tqdm import tqdm
 from fnn.microns.build import network
 from fnn.microns.load import params, units, unit_ids
 
-
 URL = "https://bossdb-open-data.s3.amazonaws.com/iarpa_microns/minnie/functional_data/foundation_model/foundational_model_weights_and_metadata_v1.zip"
-MD5 = "58fcac4b31ad2902c81e339432cec787"
+MD5 = "58fcac4b31ad2902c81e339432cec787" #verified downloaded model matches
 
 logger = logging.getLogger("fnn.microns")
 logger.addHandler(logging.StreamHandler())
@@ -98,6 +97,6 @@ def scan(session, scan_idx, cuda=True, directory=None, verbose=True):
 
     return model, load(unit_ids)
 
-file_path = os.getcwd()
-print(file_path)
-# download(URL, os.getcwd().join("\\test_network.py"))
+f_path = os.getcwd()
+
+if __name__ == "__main__": download(URL, str(f_path+"\\test_params.pth"))
