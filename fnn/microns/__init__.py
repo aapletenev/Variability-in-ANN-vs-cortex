@@ -97,7 +97,7 @@ def scan(session, scan_idx, cuda=True, directory=None, verbose=True):
 
     return model, load(unit_ids)
 
-"""
+
 # Download instruction from josh
 pred_model, table = scan(4,7, directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
 
@@ -105,7 +105,7 @@ print("Scan Information")
 try:
     print(f"Shape: {table.shape}, Columns: {table.columns}")
 except Exception as e: print("Error: ",e)
-"""
+
 
 # test prediction
 from numpy import concatenate, full
@@ -118,3 +118,8 @@ frames = concatenate([
 
 results = pred_model.predict(stimuli = frames)
 print(f"Results: ",results)
+
+"""
+1. add noise, constant and dynamic to input 
+2. pupil size and eyeposition noise
+"""
