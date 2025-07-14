@@ -97,12 +97,14 @@ def get_neuron_units(scans) -> int:
         final_df = pd.concat([final_df, row])
     return final_df['units'].sum()
 
-def inner_predict_loop(noise_type: str, noise_seeds: int, image, sigma: int, scans, num_neurons: int) -> np.array:
+def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans, num_frames: int = 30) -> np.array:
+    num_neurons = get_neuron_units(scans)
+    noise_results = np.empty((noise_seeds, num_frames, num_neurons))
     """
     Parameters
     ----------
     noise_type: string
-        dynamic, constant, or no noise NOTE: make stochastic binarization a parameter here
+        dynamic, constant, stochastic binarization or no noise
     noise_seeds: int
         how many times we add noise to the prediction
     image: object
@@ -120,10 +122,8 @@ def inner_predict_loop(noise_type: str, noise_seeds: int, image, sigma: int, sca
     
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
-    num_frames = image.shape[0]
-    noise_results = np.empty((noise_seeds, num_frames, num_neurons))
-
-    def process_noise_seed(noise_seeds: int):
+    
+    def process_noise_seed(noise_type: str, image) -> np.array:
         """
         Parameters
         ----------
@@ -135,16 +135,27 @@ def inner_predict_loop(noise_type: str, noise_seeds: int, image, sigma: int, sca
         array
             concatenated object of all predictions for every scan and noise seed
         """
-        new_noise = generate_noise(noise_type, num_frames, sigma)
-
+        if noise_type.lower() == 'stochastic binarization': 
+            # code here
+            image_prob = image / 256
+            prob_results = np.random.binomial(1, image_prob)
+            image = (prob_results * 255).astype('uint8')
+            prediction1_array = [visual_prediction(pair[0], pair[1], image) for pair in scans]
+            return np.concatenate(prediction1_array, axis = 1)
+        else: noise_type_process = noise_type
+        
+        new_noise = generate_noise(noise_type_process, num_frames, sigma)
         new_image = (image + new_noise).astype('uint8')
         
         prediction1_array = [visual_prediction(pair[0], pair[1], new_image) for pair in scans]
-        # ralf's comment about pixel_value/256 being chance of pixel value being changed to 255, add code here? should be per noise seed
         return np.concatenate(prediction1_array, axis = 1)
-            
-    with ThreadPoolExecutor() as executor:
-        noise_results = np.array(list(executor.map(process_noise_seed, range(noise_seeds))))
+    
+    with ThreadPoolExecutor(max_workers=None) as executor:
+        for i, result in enumerate(executor.map(
+            lambda i: process_noise_seed(noise_type, image),
+            range(noise_seeds)
+        )):
+            noise_results[i] = result
     return noise_results
 
 
@@ -153,7 +164,7 @@ def predict_loop(noise_type: str, noise_seeds: int, images: np.ndarray, sigma: i
     Parameters
     ----------
     noise_type: string
-        dynamic, constant, or no noise NOTE: make stochastic binarization a parameter here
+        dynamic, constant, stochastic binarization, or no noise
     noise_seeds: int
         how many times we add noise to the prediction
     images: object
@@ -177,33 +188,12 @@ def predict_loop(noise_type: str, noise_seeds: int, images: np.ndarray, sigma: i
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
     scans = ensure_2d_list(scans)
-    num_neurons = get_neuron_units(scans) 
+    noise_type = noise_type.lower()
 
     def process_image(i: int):
         predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
-        return inner_predict_loop(noise_type, noise_seeds, predict_stack, sigma, scans, num_neurons)
+        return noise_iterations(noise_type, noise_seeds, predict_stack, sigma, scans, num_frames)
         
-    """
-    for i, element in enumerate(images):
-        predict_stack = np.stack([images[i]] * num_frames, axis = 0)
-
-        prediction1 = inner_predict_loop(noise_type, noise_seeds, predict_stack, sigma, scans, num_neurons)
-
-        try:
-            if (prediction_stack.shape != prediction1.shape): 
-                prediction1 = np.reshape(prediction1, (1, prediction1.shape[0], prediction1.shape[1], prediction1.shape[2]))
-                prediction_stack = np.stack((prediction1, prediction_stack), axis = 0)
-        except NameError:
-            prediction_stack = prediction1
-        
-        final_array[i] = prediction_stack
-        del prediction_stack
-    """
-
-    """
-    for i in range(len(images)):
-        final_array[i] = process_image(i)
-    """
     final_array = [process_image(i) for i in range(len(images))]
 
     final_stack_sum = np.sum(final_array, axis=2)
