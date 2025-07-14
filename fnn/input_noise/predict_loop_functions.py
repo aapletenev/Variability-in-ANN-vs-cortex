@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 """
 relevant functions for iterating through predictions, visualizations as well
 """
-def visual_prediction(session: int, scan_idx: int, stimuli_noise):
+def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array:
     """
     Parameters 
     ----------
@@ -30,9 +30,9 @@ def visual_prediction(session: int, scan_idx: int, stimuli_noise):
     """
     pred_model, table = scan(session, scan_idx, directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
     results = pred_model.predict(stimuli = stimuli_noise)
-    return np.array(results) # should be array regardless   
+    return results # should be array regardless   
 
-def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0): # mean always equal to 0
+def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0) -> np.array: # mean always equal to 0
     """
     Parameters
     ----------
@@ -58,7 +58,7 @@ def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0): # me
     elif noise_type == "no noise": return np.zeros(shape = (num_frames, 144, 256))
     else: print("\n---Noise input not recognized, please try again---")
 
-def ensure_2d_list(scans):
+def ensure_2d_list(scans) -> list:
     """
     Parameters
     ----------
@@ -77,7 +77,7 @@ def ensure_2d_list(scans):
         return [scans]
     return scans
 
-def get_neuron_units(scans):
+def get_neuron_units(scans) -> int:
     """
     Parameters
     ----------
@@ -97,7 +97,7 @@ def get_neuron_units(scans):
         final_df = pd.concat([final_df, row])
     return final_df['units'].sum()
 
-def inner_predict_loop(noise_type: str, noise_seeds: int, image, sigma: int, scans, num_neurons: int):
+def inner_predict_loop(noise_type: str, noise_seeds: int, image, sigma: int, scans, num_neurons: int) -> np.array:
     """
     Parameters
     ----------
@@ -177,14 +177,12 @@ def predict_loop(noise_type: str, noise_seeds: int, images: np.ndarray, sigma: i
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
     scans = ensure_2d_list(scans)
-    num_neurons = get_neuron_units(scans)
-    final_array = np.empty(shape=(len(images), noise_seeds, num_frames, num_neurons))
-    
+    num_neurons = get_neuron_units(scans) 
 
     def process_image(i: int):
         predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
         return inner_predict_loop(noise_type, noise_seeds, predict_stack, sigma, scans, num_neurons)
-
+        
     """
     for i, element in enumerate(images):
         predict_stack = np.stack([images[i]] * num_frames, axis = 0)
@@ -201,8 +199,12 @@ def predict_loop(noise_type: str, noise_seeds: int, images: np.ndarray, sigma: i
         final_array[i] = prediction_stack
         del prediction_stack
     """
+
+    """
     for i in range(len(images)):
         final_array[i] = process_image(i)
+    """
+    final_array = [process_image(i) for i in range(len(images))]
 
     final_stack_sum = np.sum(final_array, axis=2)
     return final_stack_sum, np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
@@ -245,6 +247,7 @@ def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram fo
     neuron_pvalue['neuron'] = neuron_pvalue['neuron'].astype(int)
     neuron_pvalue['p_value'] = neuron_pvalue['p_value'].round(3)
     print(neuron_pvalue)
+
 
 
 
