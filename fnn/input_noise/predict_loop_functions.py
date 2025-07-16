@@ -97,14 +97,31 @@ def get_neuron_units(scans) -> int:
         final_df = pd.concat([final_df, row])
     return final_df['units'].sum()
 
-def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans, num_frames: int = 30) -> np.array:
+def stochastic_binarization(image_object: np.array) -> np.array:
+    """
+    Parameters
+    ----------
+    image_object: np.array
+        either a single image transformed into an array, or stack of different images transformed into arrays
+    
+    Returns
+    -------
+    np.array
+        array with stochasic binarization applied to input
+    """
+    image_prob = image_object / 256
+    prob_results = np.random.binomial(1, image_prob)
+    image = (prob_results * 255).astype('uint8')
+    return image
+
+def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
     num_neurons = get_neuron_units(scans)
     noise_results = np.empty((noise_seeds, num_frames, num_neurons))
     """
     Parameters
     ----------
     noise_type: string
-        dynamic, constant, stochastic binarization or no noise
+        dynamic, constant, or no noise
     noise_seeds: int
         how many times we add noise to the prediction
     image: object
@@ -135,14 +152,22 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
         array
             concatenated object of all predictions for every scan and noise seed
         """
-        if noise_type.lower() == 'stochastic binarization': 
-            # code here
-            image_prob = image / 256
-            prob_results = np.random.binomial(1, image_prob)
-            image = (prob_results * 255).astype('uint8')
-            prediction1_array = [visual_prediction(pair[0], pair[1], image) for pair in scans]
+        if stochastic_bin_param: 
+            # constant stochastic binarization
+            if noise_type == 'constant':
+                transformed_image = stochastic_binarization(image)
+            # dynamic stochastic binarization
+            elif noise_type == 'dynamic':
+                transformed_image = np.array([stochastic_binarization(frame) for frame in image])
+            
+            else:
+                print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
+                return
+
+            prediction1_array = [visual_prediction(pair[0], pair[1], transformed_image) for pair in scans]
             return np.concatenate(prediction1_array, axis = 1)
-        else: noise_type_process = noise_type
+
+        else: noise_type_process = noise_type # case, no stochastic bin. 
         
         new_noise = generate_noise(noise_type_process, num_frames, sigma)
         new_image = (image + new_noise).astype('uint8')
@@ -159,20 +184,22 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
     return noise_results
 
 
-def predict_loop(noise_type: str, noise_seeds: int, images: np.ndarray, sigma: int, scans, num_frames: int = 30):
+def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
     """
     Parameters
     ----------
     noise_type: string
         dynamic, constant, stochastic binarization, or no noise
-    noise_seeds: int
-        how many times we add noise to the prediction
     images: object
         images (usually object from np.stack()) that we are adding noise to and then predicting on
     sigma: int
         standard deviation for gaussian noise distribution
     scans: list/array
         should be 2d array with pairs of sessions and scan ids taken from scans.csv
+    stochastic_bin_param: bool
+        if stochastic binarization should be performed for noise, default False 
+    noise_seeds: int
+        how many times we add noise to the prediction
     num_frames: int
         number of frames per image, defaults to 30
     
@@ -192,7 +219,7 @@ def predict_loop(noise_type: str, noise_seeds: int, images: np.ndarray, sigma: i
 
     def process_image(i: int):
         predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
-        return noise_iterations(noise_type, noise_seeds, predict_stack, sigma, scans, num_frames)
+        return noise_iterations(noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
         
     final_array = [process_image(i) for i in range(len(images))]
 
@@ -239,5 +266,6 @@ def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram fo
     print(neuron_pvalue)
 
 
+# tests 
 
 
