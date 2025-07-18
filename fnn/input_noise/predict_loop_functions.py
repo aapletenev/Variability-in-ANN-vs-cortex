@@ -13,7 +13,7 @@ from PIL import Image
 """
 relevant functions for iterating through predictions, visualizations as well
 """
-def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array:
+def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array: # make model input here, move scan() to beginning of code
     """
     Parameters 
     ----------
@@ -138,7 +138,8 @@ def add_brain_region(predictions_ids: list, brain_regions: pd.DataFrame, encodin
     # make dataframe to merge with brain region data from csv
     ids_df = pd.DataFrame(ids, columns = ['session', 'scan_idx', 'unit_id'])
     
-    ids_matched = pd.merge(brain_regions, ids_df, how = 'inner', on = ['session', 'scan_idx', 'unit_id'])['brain_area'] #only need brain_area
+    # switched type of join and order of arrays
+    ids_matched = pd.merge(ids_df, brain_regions, how = 'left', on = ['session', 'scan_idx', 'unit_id'])['brain_area'] #only need brain_area
 
     predictions = predictions[:, :, np.newaxis]
 
@@ -197,6 +198,7 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
 
+            # visual_prediction() at begining of code, then model and scans become input and ids can be stored at beginning -> added at end
             prediction_array = [visual_prediction(pair[0], pair[1], transformed_image) for pair in scans]
             return add_brain_region(prediction_array, brain_regions)
 
