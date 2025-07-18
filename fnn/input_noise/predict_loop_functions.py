@@ -253,7 +253,7 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
         predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
         return noise_iterations(noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
         
-    final_array = [process_image(i) for i in range(len(images))]
+    final_array = np.array([process_image(i) for i in range(len(images))])
 
     final_stack_sum = np.sum(final_array, axis=2)
     final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
