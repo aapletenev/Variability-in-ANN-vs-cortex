@@ -8,6 +8,7 @@ import sys
 from fnn.microns.__init__ import scan
 from scipy.stats import shapiro
 from concurrent.futures import ThreadPoolExecutor
+from PIL import Image
 
 """
 relevant functions for iterating through predictions, visualizations as well
@@ -32,7 +33,7 @@ def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array:
     """
     pred_model, ids = scan(session, scan_idx, directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
     results = pred_model.predict(stimuli = stimuli_noise)
-    return results #, ids   
+    return results , ids   
 
 def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0) -> np.array: # mean always equal to 0
     """
@@ -116,9 +117,45 @@ def stochastic_binarization(image_object: np.array) -> np.array:
     image = (prob_results * 255).astype('uint8')
     return image
 
+def add_brain_region(predictions_ids: list, brain_regions: pd.DataFrame) -> np.array:
+    """
+    Parameters
+    ----------
+    predictions_ids: list
+        list of array objects, each containing prediction and id for relevant neurons
+    brain_regions: DataFrame
+        brain region mappings from csv file
+
+    Returns
+    array
+        array of predictions with brain region column added
+    """
+    predictions = [output[0] for output in predictions_ids]
+    ids = [output[1] for output in predictions_ids]
+
+    predictions = np.concatenate(predictions, axis = 1)
+    ids = np.concatenate(ids, axis = 0)
+
+    # make dataframe to merge with brain region data from csv
+    ids_df = pd.DataFrame(ids, columns = ['session', 'scan_idx', 'unit_id'])
+    
+    ids_matched = pd.merge(brain_regions, ids_df, how = 'inner', on = ['session', 'scan_idx', 'unit_id'])
+
+    encoding = {'V1':1, 'LM':2, 'AL':3, 'RL':4}
+
+    ids_matched['brain_area'] = ids_matched['brain_area'].map(encoding)
+
+    length = ids_matched.shape[0]
+
+    ids_matched_array = ids_matched['brain_area'].to_numpy().reshape(1, length, 1)
+
+    predictions = predictions[:, :, np.newaxis]
+    ids_matched_array = np.broadcast_to(ids_matched_array, shape = (predictions.shape[0], predictions.shape[1], 1))
+    return np.concatenate([predictions, ids_matched_array], axis = 2)
+
 def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
     num_neurons = get_neuron_units(scans)
-    noise_results = np.empty((noise_seeds, num_frames, num_neurons))
+    noise_results = np.empty((noise_seeds, num_frames, num_neurons, 2)) # check with anton, should always be equal to 2
     """
     Parameters
     ----------
@@ -156,26 +193,24 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
         """
         if stochastic_bin_param: 
             # constant stochastic binarization
-            if noise_type == 'constant':
-                transformed_image = stochastic_binarization(image)
+            if noise_type == 'constant': transformed_image = stochastic_binarization(image)
             # dynamic stochastic binarization
-            elif noise_type == 'dynamic':
-                transformed_image = np.array([stochastic_binarization(frame) for frame in image])
-            
+            elif noise_type == 'dynamic': transformed_image = np.array([stochastic_binarization(frame) for frame in image])       
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
 
-            prediction1_array = [visual_prediction(pair[0], pair[1], transformed_image) for pair in scans]
-            return np.concatenate(prediction1_array, axis = 1)
+            prediction_array = [visual_prediction(pair[0], pair[1], transformed_image) for pair in scans]
+            brain_regions = pd.read_csv('brain_region_files//microns_area_labels.csv')
+            return add_brain_region(prediction_array, brain_regions) # import microns_area_labels.csv in begining
 
         else: noise_type_process = noise_type # case, no stochastic bin. 
         
         new_noise = generate_noise(noise_type_process, num_frames, sigma)
         new_image = (image + new_noise).astype('uint8')
         
-        prediction1_array = [visual_prediction(pair[0], pair[1], new_image) for pair in scans]
-        return np.concatenate(prediction1_array, axis = 1)
+        prediction_array = [visual_prediction(pair[0], pair[1], new_image) for pair in scans]
+        return np.concatenate(prediction_array, axis = 1)
     
     with ThreadPoolExecutor(max_workers=None) as executor:
         for i, result in enumerate(executor.map(
@@ -184,7 +219,6 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
         )):
             noise_results[i] = result
     return noise_results
-
 
 def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
     """
@@ -267,10 +301,64 @@ def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram fo
     neuron_pvalue['p_value'] = neuron_pvalue['p_value'].round(3)
     print(neuron_pvalue)
 
+def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
+    """
+    NOTE: directory structure for subfolers as follows
+    --imagenet-mini
+        -->train
+            -->folder1
+                -->picture1-1
+                -->picture2-1.....
+            -->folder2...
+            -->folder3...
+                -->picture1-3
+                -->pictuer2-3
+                -->picture....
+        -->validation
 
-# tests 
-input_array = np.full(shape = (10, 144, 256), fill_value = 128).astype('uint8')
 
-test_results, test_ids = visual_prediction(4, 7, input_array)
+    Parameters
+    ----------
+    num: int
+        number of images 
+    frames: int
+        number of frames
+    train: bool
+        using training or validation set, defaults to train
+    path: string
+        defaults to cwd for training folder, otherwise path to train/val. folders needed
 
-print(f'test ids: {test_ids}')
+    Returns
+    -------
+    folder_id
+        folder # used
+    image_ids
+        image #'s used
+    np.stack(final_array)
+        stack of num DIFFERENT images in one object, shape (num, 144, 256)
+    """
+
+    if train == True: train_val = '//train' 
+    else: train_val = '//val'
+
+    folder_path = path + train_val # get path to train/val folders
+    initial_folders = os.listdir(folder_path)
+
+    folder_id = np.random.randint(0, len(initial_folders) - 1) # get path to random folder within train/val
+    image_folder_path = folder_path + '//' + initial_folders[folder_id]
+
+    image_folder = os.listdir(image_folder_path) # path to folder in train/val with images
+
+    image_ids = np.random.randint(0,len(image_folder) - 1, size = num)
+    final_array = np.empty(shape = (num, 144, 256))
+
+    for i in range(num):
+        image_name = '//' + image_folder[i]
+        image_path = image_folder_path + image_name
+        image = Image.open(image_path)
+        image = image.convert('L')
+        if image.size != (256, 144): image = image.resize((256, 144))
+        image = np.array(image)
+        final_array[i] = image
+
+    return folder_id, image_ids, np.stack(final_array, axis = 0)
