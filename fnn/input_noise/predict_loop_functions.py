@@ -5,8 +5,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import sys
-
-sys.path.append(os.path.join(os.path.dirname('fnn'), '//'))
 from fnn.microns.__init__ import scan
 from scipy.stats import shapiro
 from concurrent.futures import ThreadPoolExecutor
@@ -29,10 +27,12 @@ def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array:
     -------
     array
         neuron predictions
+    array
+        ids with corresponding unit_id for each scan
     """
     pred_model, ids = scan(session, scan_idx, directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
     results = pred_model.predict(stimuli = stimuli_noise)
-    return results, ids   
+    return results #, ids   
 
 def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0) -> np.array: # mean always equal to 0
     """
@@ -269,5 +269,8 @@ def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram fo
 
 
 # tests 
+input_array = np.full(shape = (10, 144, 256), fill_value = 128).astype('uint8')
 
-test_results, test_ids = visual_prediction(4, 7, np.full(shape = (10, 144, 256), fill_value = 128))
+test_results, test_ids = visual_prediction(4, 7, input_array)
+
+print(f'test ids: {test_ids}')
