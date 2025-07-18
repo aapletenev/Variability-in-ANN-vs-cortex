@@ -6,8 +6,8 @@ import tempfile
 import zipfile
 import requests
 from tqdm import tqdm
-from fnn.microns.build import network
-from fnn.microns.load import params, units, unit_ids
+from build import network
+from load import params, units, unit_ids
 
 URL = "https://bossdb-open-data.s3.amazonaws.com/iarpa_microns/minnie/functional_data/foundation_model/foundational_model_weights_and_metadata_v1.zip"
 MD5 = "58fcac4b31ad2902c81e339432cec787" #verified downloaded model matches
@@ -96,6 +96,7 @@ def scan(session, scan_idx, cuda=True, directory=None, verbose=True):
         model.to(device="cuda")
 
     return model, load(unit_ids)
+
 
 """
 # Download instruction from josh
