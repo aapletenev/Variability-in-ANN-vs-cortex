@@ -191,15 +191,15 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
 
         if stochastic_bin_param: 
             # constant stochastic binarization
-            if noise_type == 'constant': transformed_image = stochastic_binarization(image)
+            if noise_type == 'constant': new_image = stochastic_binarization(image)
             # dynamic stochastic binarization
-            elif noise_type == 'dynamic': transformed_image = np.array([stochastic_binarization(frame) for frame in image])       
+            elif noise_type == 'dynamic': new_image = np.array([stochastic_binarization(frame) for frame in image])       
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
 
             # visual_prediction() at begining of code, then model and scans become input and ids can be stored at beginning -> added at end
-            prediction_array = [visual_prediction(pair[0], pair[1], transformed_image) for pair in scans]
+            prediction_array = [visual_prediction(pair[0], pair[1], new_image) for pair in scans]
             return add_brain_region(prediction_array, brain_regions)
 
         else: noise_type_process = noise_type # case, no stochastic bin. 
