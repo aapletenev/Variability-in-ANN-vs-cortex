@@ -33,7 +33,7 @@ def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array: #
     """
     pred_model, ids = scan(session, scan_idx, directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
     results = pred_model.predict(stimuli = stimuli_noise)
-    return results , ids   
+    return results, ids   
 
 def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0) -> np.array: # mean always equal to 0
     """
@@ -149,12 +149,16 @@ def add_brain_region(predictions_ids: list, brain_regions: pd.DataFrame, encodin
 
     return np.concatenate([predictions, ids_matched], axis = 2)
 
-def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
+def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
     num_neurons = get_neuron_units(scans)
-    noise_results = np.empty((noise_seeds, num_frames, num_neurons, 2)) # check with anton, should always be equal to 2
+    noise_results = np.empty((noise_seeds, num_frames, num_neurons)) # check with anton, last dim should always be equal to 2
     """
     Parameters
     ----------
+    model_list: list
+        list with predictive model weights from scans, all models are visual models
+    id_list: list
+        list with neuron ids from scan()
     noise_type: string
         dynamic, constant, or no noise
     noise_seeds: int
@@ -174,21 +178,21 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
     
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
-    
+
+    brain_regions = pd.read_csv('brain_region_files//microns_area_labels.csv')
+
     def process_noise_seed(noise_type: str, image) -> np.array:
         """
         Parameters
         ----------
         noise_seeds: int
-            noise seeds, same as entered into inner_predict_loop() to iterate for each noise seed in threadpoolexecutor
+            noise seeds, same as entered into inner_predict_loop() to iterate for each noise seed
         
         Returns
         -------
         array
             concatenated object of all predictions for every scan and noise seed
         """
-        brain_regions = pd.read_csv('brain_region_files//microns_area_labels.csv')
-
         if stochastic_bin_param: 
             # constant stochastic binarization
             if noise_type == 'constant': new_image = stochastic_binarization(image)
@@ -199,23 +203,33 @@ def noise_iterations(noise_type: str, noise_seeds: int, image, sigma: int, scans
                 return
 
             # visual_prediction() at begining of code, then model and scans become input and ids can be stored at beginning -> added at end
-            prediction_array = [visual_prediction(pair[0], pair[1], new_image) for pair in scans]
-            return add_brain_region(prediction_array, brain_regions)
 
-        else: noise_type_process = noise_type # case, no stochastic bin. 
+            for model, ids in zip(model_list, id_list):
+                prediction = model.predict(new_image)
+            return prediction
+
+        else: noise_type_process = noise_type # case: no stochastic bin. 
         
         new_noise = generate_noise(noise_type_process, num_frames, sigma)
         new_image = (image + new_noise).astype('uint8')
         
-        prediction_array = [visual_prediction(pair[0], pair[1], new_image) for pair in scans]
-        return add_brain_region(prediction_array, brain_regions)
+        for model, ids in zip(model_list, id_list):
+            prediction = model.predict(new_image)
+        
+        return prediction
     
+    """
     with ThreadPoolExecutor(max_workers=None) as executor:
         for i, result in enumerate(executor.map(
             lambda i: process_noise_seed(noise_type, image),
             range(noise_seeds)
         )):
             noise_results[i] = result
+"""
+    for i in range(noise_seeds):
+        result = process_noise_seed(noise_type, image)
+        noise_results[i] = result
+
     return noise_results
 
 def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
@@ -251,15 +265,21 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
     scans = ensure_2d_list(scans)
     noise_type = noise_type.lower()
 
+    models_array, ids_array = [], []
+
+    for session_scan in scans:
+        pred_model, ids = scan(session_scan[0], session_scan[1], directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
+        models_array.append(pred_model)
+        ids_array.append(ids)
+
     def process_image(i: int):
         predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
-        return noise_iterations(noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
+        return noise_iterations(models_array, ids_array, noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
         
     final_array = np.array([process_image(i) for i in range(len(images))])
 
     final_stack_sum = np.sum(final_array, axis=2)
     final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
-    final_var[:, :, -1] = final_mean[:, :, -1].astype('int8')
     return final_stack_sum, final_mean, final_var
             
 def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
