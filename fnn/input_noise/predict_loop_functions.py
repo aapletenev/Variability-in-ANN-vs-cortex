@@ -7,7 +7,6 @@ import matplotlib.ticker as ticker
 import sys
 from fnn.microns.__init__ import scan
 from scipy.stats import shapiro
-from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
 
 """
@@ -117,14 +116,12 @@ def stochastic_binarization(image_object: np.array) -> np.array:
     image = (prob_results * 255).astype('uint8')
     return image
 
-def add_brain_region(predictions_ids: list, brain_regions: pd.DataFrame, encoding = {'V1':1, 'LM':2, 'AL':3, 'RL':4}) -> np.array:
+def add_brain_region(ids: pd.DataFrame, encoding : dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4}) -> np.array:
     """
     Parameters
     ----------
-    predictions_ids: list
-        list of array objects, each containing prediction and id for relevant neurons
-    brain_regions: DataFrame
-        brain region mappings from csv file
+    ids: DataFrame
+        mapping for readout to unit ids from scan()
     encoding: dictionary
         default dictionary provided for brain regions V1, LM, AL and RL
 
@@ -132,22 +129,12 @@ def add_brain_region(predictions_ids: list, brain_regions: pd.DataFrame, encodin
     array
         array of predictions with brain region column added
     """
-    predictions = np.concatenate([output[0] for output in predictions_ids], axis = 1)
-    ids = np.concatenate([output[1] for output in predictions_ids], axis = 0)
+    brain_regions = pd.read_csv('brain_region_files//microns_area_labels.csv')
 
-    # make dataframe to merge with brain region data from csv
-    ids_df = pd.DataFrame(ids, columns = ['session', 'scan_idx', 'unit_id'])
-    
-    # switched type of join and order of arrays
-    ids_matched = pd.merge(ids_df, brain_regions, how = 'left', on = ['session', 'scan_idx', 'unit_id'])['brain_area'] #only need brain_area
+    ids_matched = pd.merge(ids, brain_regions, how = 'left', on = ['session', 'scan_idx', 'unit_id'])['brain_area']
+    ids_matched = ids_matched.map(encoding)
 
-    predictions = predictions[:, :, np.newaxis]
-
-    ids_matched = ids_matched.map(encoding).to_numpy()
-    ids_matched = ids_matched[np.newaxis, :, np.newaxis]
-    ids_matched = np.broadcast_to(ids_matched, shape = (predictions.shape[0], predictions.shape[1], 1))
-
-    return np.concatenate([predictions, ids_matched], axis = 2)
+    return ids_matched
 
 def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
     num_neurons = get_neuron_units(scans)
@@ -179,8 +166,6 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
 
-    brain_regions = pd.read_csv('brain_region_files//microns_area_labels.csv')
-
     def process_noise_seed(noise_type: str, image) -> np.array:
         """
         Parameters
@@ -201,8 +186,6 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
-
-            # visual_prediction() at begining of code, then model and scans become input and ids can be stored at beginning -> added at end
 
             for model, ids in zip(model_list, id_list):
                 prediction = model.predict(new_image)
@@ -259,28 +242,33 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
         returns array with each mean neuron prediction for all images entered
     var_array
         returns array with each var. in neuron prediction for all images entered
+    regions
+        DataFrame with brain region mappings for all neurons 
         
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
     scans = ensure_2d_list(scans)
     noise_type = noise_type.lower()
 
-    models_array, ids_array = [], []
+    models_list, ids_list = [], []
 
     for session_scan in scans:
         pred_model, ids = scan(session_scan[0], session_scan[1], directory = os.path.join(os.getcwd(), "data","microns")) # look at data/microns/scans.csv for numbers that work
-        models_array.append(pred_model)
-        ids_array.append(ids)
+        models_list.append(pred_model)
+        ids_list.append(ids)
 
     def process_image(i: int):
         predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
-        return noise_iterations(models_array, ids_array, noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
+        return noise_iterations(models_list, ids_list, noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
         
     final_array = np.array([process_image(i) for i in range(len(images))])
 
     final_stack_sum = np.sum(final_array, axis=2)
     final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
-    return final_stack_sum, final_mean, final_var
+
+    # return brain regions as seperate object
+    regions = [add_brain_region(mapping) for mapping in ids_list]
+    return final_stack_sum, final_mean, final_var, regions
             
 def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
 
