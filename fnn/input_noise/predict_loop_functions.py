@@ -10,7 +10,7 @@ from scipy.stats import shapiro
 from PIL import Image
 
 """
-relevant functions for iterating through predictions, visualizations as well
+relevant functions for iterating through predictions
 """
 def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array: # make model input here, move scan() to beginning of code
     """
@@ -116,27 +116,30 @@ def stochastic_binarization(image_object: np.array) -> np.array:
     image = (prob_results * 255).astype('uint8')
     return image
 
-def add_brain_region(ids: pd.DataFrame, encoding : dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4}) -> np.array:
+def get_brain_region(ids: pd.DataFrame, num_neurons: int, encoding : dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4},
+                     brain_region_path: str = 'brain_region_files//microns_area_labels.csv') -> np.array:
     """
     Parameters
     ----------
     ids: DataFrame
         mapping for readout to unit ids from scan()
+    num_neurons: int
+        number of neurons taken from scan()
     encoding: dictionary
         default dictionary provided for brain regions V1, LM, AL and RL
+    brain_region_path: str
+        default path provided for microns_area_labels.csv
 
     Returns
     array
         array of predictions with brain region column added
     """
-    brain_regions = pd.read_csv('brain_region_files//microns_area_labels.csv')
+    brain_regions = pd.read_csv(brain_region_path) # make input
 
     ids_matched = pd.merge(ids, brain_regions, how = 'left', on = ['session', 'scan_idx', 'unit_id'])['brain_area']
     ids_matched = ids_matched.map(encoding)
 
     # ensure that this does not cause any errors in real code
-    ids_matched = ids_matched.reshape(ids_matched.shape[1],)
-
     return ids_matched
 
 def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
@@ -161,6 +164,7 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         should be 2d array with pairs of sessions and scan ids taken from scans.csv
     num_neurons: int
         total number of neurons from all scans, inputted from predict_loop()
+
     Returns
     -------
     array
@@ -270,9 +274,14 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
     final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
 
     # return brain regions as seperate object
-    regions = [add_brain_region(mapping) for mapping in ids_list]
+    num_neurons = get_neuron_units(scans)
+    regions = [get_brain_region(mapping, num_neurons) for mapping in ids_list]
     return final_stack_sum, final_mean, final_var, regions
-            
+
+"""
+miscellaneous functions 
+"""
+
 def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
 
     neuron_pvalue = pd.DataFrame({
@@ -373,3 +382,21 @@ def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
         final_array[i] = image
 
     return folder_id, image_ids, np.stack(final_array, axis = 0)
+
+def filter_region(region_input: int, label_mapping, array):
+    """
+    Parameters
+    ----------
+    region_input: int
+        specified region to output
+    label_mapping: label
+    """
+    if isinstance(region_input, (np.ndarray, list)):
+        raise ValueError(f"region_input must be an integer, got {type(region_input)}")
+
+    # Ensure label_mapping is a list of scalars
+    if not all(isinstance(x, (int, float)) for x in label_mapping):
+        raise ValueError("label_mapping must contain only scalars (int or float)")
+    #region_indices = [i for i, region in enumerate(label_mapping) if region == region_input]
+    region_indices = np.where(label_mapping == region_input).tolist()
+    return array[..., region_indices]
