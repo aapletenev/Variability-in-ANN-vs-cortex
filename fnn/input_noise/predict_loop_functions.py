@@ -134,6 +134,9 @@ def add_brain_region(ids: pd.DataFrame, encoding : dict = {'V1':1, 'LM':2, 'AL':
     ids_matched = pd.merge(ids, brain_regions, how = 'left', on = ['session', 'scan_idx', 'unit_id'])['brain_area']
     ids_matched = ids_matched.map(encoding)
 
+    # ensure that this does not cause any errors in real code
+    ids_matched = ids_matched.reshape(ids_matched.shape[1],)
+
     return ids_matched
 
 def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
