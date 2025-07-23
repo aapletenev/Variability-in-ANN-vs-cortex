@@ -116,7 +116,7 @@ def stochastic_binarization(image_object: np.array) -> np.array:
     image = (prob_results * 255).astype('uint8')
     return image
 
-def get_brain_region(ids: pd.DataFrame, num_neurons: int, encoding : dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4},
+def get_brain_region(ids: pd.DataFrame, num_neurons: int, encoding : dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4}, # why num_neurons here?
                      brain_region_path: str = 'brain_region_files//microns_area_labels.csv') -> np.array:
     """
     Parameters
@@ -139,7 +139,7 @@ def get_brain_region(ids: pd.DataFrame, num_neurons: int, encoding : dict = {'V1
     ids_matched = pd.merge(ids, brain_regions, how = 'left', on = ['session', 'scan_idx', 'unit_id'])['brain_area']
     ids_matched = ids_matched.map(encoding)
 
-    # ensure that this does not cause any errors in real code
+    # output is a list with one pd.Series in it, keep for now
     return ids_matched
 
 def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
@@ -273,9 +273,8 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
     final_stack_sum = np.sum(final_array, axis=2)
     final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
 
-    # return brain regions as seperate object
     num_neurons = get_neuron_units(scans)
-    regions = [get_brain_region(mapping, num_neurons) for mapping in ids_list]
+    regions = [get_brain_region(mapping, num_neurons) for mapping in ids_list] # this is why output is in list
     return final_stack_sum, final_mean, final_var, regions
 
 """
@@ -391,12 +390,7 @@ def filter_region(region_input: int, label_mapping, array):
         specified region to output
     label_mapping: label
     """
-    if isinstance(region_input, (np.ndarray, list)):
-        raise ValueError(f"region_input must be an integer, got {type(region_input)}")
-
-    # Ensure label_mapping is a list of scalars
-    if not all(isinstance(x, (int, float)) for x in label_mapping):
-        raise ValueError("label_mapping must contain only scalars (int or float)")
+    
     #region_indices = [i for i, region in enumerate(label_mapping) if region == region_input]
-    region_indices = np.where(label_mapping == region_input).tolist()
+    region_indices = np.where(label_mapping == region_input)[0].tolist()
     return array[..., region_indices]
