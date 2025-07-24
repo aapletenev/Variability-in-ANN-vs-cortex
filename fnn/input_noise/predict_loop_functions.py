@@ -368,7 +368,7 @@ def filter_region(region_input: int, num_images: int, label_mapping, array):
     return array[..., region_indices[0]]
 
 """
-visualization functions 
+visualization functions
 """
 
 def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
