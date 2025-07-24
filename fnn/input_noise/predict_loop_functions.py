@@ -382,15 +382,26 @@ def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
 
     return folder_id, image_ids, np.stack(final_array, axis = 0)
 
-def filter_region(region_input: int, label_mapping, array):
+def filter_region(region_input: int, num_images: int, label_mapping, array):
     """
     Parameters
     ----------
     region_input: int
         specified region to output
+    num_images: int
+        number of images used for predict_loop()
     label_mapping: label
+        mapping output from scans()
+    array: np.array
+        array to filter
+
+    Returns
+    -------
+    array
+        filtered array where brain region is equal to region_input
     """
     
-    #region_indices = [i for i, region in enumerate(label_mapping) if region == region_input]
-    region_indices = np.where(label_mapping == region_input)[0].tolist()
-    return array[..., region_indices]
+    concat_array = np.concatenate((array, label_mapping), axis=0)
+    region_indices = np.where(concat_array[num_images] == region_input)
+
+    return array[..., region_indices[0]]
