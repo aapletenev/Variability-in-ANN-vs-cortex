@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import sys
 from fnn.microns.__init__ import scan
-from scipy.stats import shapiro
+from scipy.stats import shapiro, linregress
 from PIL import Image
 
 """
@@ -278,47 +278,8 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
     return final_stack_sum, final_mean, final_var, regions
 
 """
-miscellaneous functions 
+helper functions
 """
-
-def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
-
-    neuron_pvalue = pd.DataFrame({
-    'neuron' : [],
-    'p_value' :[]
-    })
-
-    fig, axes = plt.subplots(5,6, figsize = (20,6))
-
-    array = array[0] # 3d array is going to be inputted, for now just take first image
-
-    p_values = np.empty((neurons.size))
-    test_statistics = np.empty((neurons.size))
-    for id, neuron in enumerate(neurons):
-        row = id // 6
-        col = id % 6
-        ax = axes[row, col]
-        plot = array[:,neuron]
-        ax.hist(plot, color = color)
-        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{round(x,3)}"))
-
-        # hypothesis test
-        p_value, test_statistic = shapiro(plot)
-        p_values[id] = p_value
-        test_statistics[id] = test_statistic
-        neuron_pvalue.loc[id] = neuron, p_value
-
-    # display histogram
-    fig.suptitle(f"Neuron Outputs: {title}")
-    fig.supxlabel('Predicted Firing Rate')
-    fig.supylabel('Counts')
-    plt.tight_layout()
-    plt.show()
-
-    # print dataframe with p values
-    neuron_pvalue['neuron'] = neuron_pvalue['neuron'].astype(int)
-    neuron_pvalue['p_value'] = neuron_pvalue['p_value'].round(3)
-    print(neuron_pvalue)
 
 def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
     """
@@ -405,3 +366,151 @@ def filter_region(region_input: int, num_images: int, label_mapping, array):
     region_indices = np.where(concat_array[num_images] == region_input)
 
     return array[..., region_indices[0]]
+
+"""
+visualization functions 
+"""
+
+def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
+
+    neuron_pvalue = pd.DataFrame({
+    'neuron' : [],
+    'p_value' :[]
+    })
+
+    fig, axes = plt.subplots(5,6, figsize = (20,6))
+
+    array = array[0] # 3d array is going to be inputted, for now just take first image
+
+    p_values = np.empty((neurons.size))
+    test_statistics = np.empty((neurons.size))
+    for id, neuron in enumerate(neurons):
+        row = id // 6
+        col = id % 6
+        ax = axes[row, col]
+        plot = array[:,neuron]
+        ax.hist(plot, color = color)
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{round(x,3)}"))
+
+        # hypothesis test
+        p_value, test_statistic = shapiro(plot)
+        p_values[id] = p_value
+        test_statistics[id] = test_statistic
+        neuron_pvalue.loc[id] = neuron, p_value
+
+    # display histogram
+    fig.suptitle(f"Neuron Outputs: {title}")
+    fig.supxlabel('Predicted Firing Rate')
+    fig.supylabel('Counts')
+    plt.tight_layout()
+    plt.show()
+
+    # print dataframe with p values
+    neuron_pvalue['neuron'] = neuron_pvalue['neuron'].astype(int)
+    neuron_pvalue['p_value'] = neuron_pvalue['p_value'].round(3)
+    print(neuron_pvalue)
+
+def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in range(100)]): # input mean/var output from predict_loop()
+    """
+    Parameters
+    ----------
+    array: np.array
+        mean/var output from predict loop
+    neurons: list or np.array
+        list of specified neurons to pick, defaults to first 100
+
+    Returns
+    -------
+    final_array
+        average output for all images for specified neurons
+    """
+    final_array = np.empty(shape = len(neurons))
+    for i, neuron in enumerate(neurons):
+        avg = np.mean(array[:,neuron])
+        final_array[i] = avg
+    return final_array
+
+"""
+This function assumes three sigmas values of 3,15,30 and then a stochastic binarization which is plotted last.
+Thus, both inputted lists must have four different arrays of means/variance predictions from prediction loop.
+"""
+def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool, 
+               normalized: bool, region: int, sigmas: list = [3, 15, 30, 50]):
+    """
+    Parameters
+    ----------
+    dynamic_array: list
+        list of dynamic noise mean/var arrays from prediction loop
+    constant_array: list
+        list of constant noise mean/var arrays from prediction loop
+    mean_plot: bool
+        if plot is for mean values or not (variance plot)
+    normalized: bool
+        to normalize values or not
+    region: int
+        input region from brain for title
+    sigmas: list
+        defaults to list of sigma values for noise used for initial runs
+    
+    Returns
+    -------
+    matplotlib plot
+        line plot of sigma versus mean or var spike counts
+    """
+    fig, axes = plt.subplots(1,2, figsize = (8,6), sharey = True)
+
+    sigmas = np.array([3, 15, 30, 50]) # making stochastic bin. 50 here, what should it be?
+
+    colors = plt.cm.tab20(np.linspace(0, 1, 100))  # 100 colors for 100 neurons
+
+    for i in range(100):
+        dynamic_y = ([dynamic_array[0][i], dynamic_array[1][i], dynamic_array[2][i], dynamic_array[3][i]] / dynamic_array[0][i] if normalized
+        else [dynamic_array[0][i], dynamic_array[1][i], dynamic_array[2][i], dynamic_array[3][i]])
+        constant_y = ([constant_array[0][i], constant_array[1][i], constant_array[2][i], constant_array[3][i]] / constant_array[0][i] if normalized
+                      else [constant_array[0][i], constant_array[1][i], constant_array[2][i], constant_array[3][i]])
+
+        axes[0].plot(sigmas, dynamic_y, marker='o', linestyle='-', alpha=0.5, color = colors[i])
+
+        axes[1].plot(sigmas, constant_y, marker='o', linestyle='-', alpha=0.5, color = colors[i])
+        
+    dynamic_mean_y = np.mean(dynamic_array, axis=1) / np.mean(dynamic_array[0])  
+    constant_mean_y = np.mean(constant_array, axis=1) / np.mean(constant_array[0])
+
+    slope_dyn, intercept_dyn, r_value_dyn, p_value_dyn, std_err_dyn = linregress(sigmas, dynamic_mean_y)
+    y_pred_dyn = intercept_dyn + slope_dyn * sigmas
+
+    slope_con, intercept_con, r_value_con, p_value_con, std_err_con = linregress(sigmas, constant_mean_y)
+    y_pred_con = intercept_con + slope_con * sigmas
+
+
+    axes[0].plot(sigmas, y_pred_dyn, 'o')
+    axes[0].plot(sigmas, y_pred_dyn, 'r-', label='Regression line, Dynamic Noise', color = 'red', linewidth = 2)
+
+    axes[1].plot(sigmas, y_pred_con, 'o')
+    axes[1].plot(sigmas, y_pred_con, 'r-', label='Regression line, Constant Noise', color = 'red', linewidth = 2)
+
+    # error band/SE
+    dyn_se = std_err_dyn * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
+    con_se = std_err_con * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
+    axes[0].fill_between(sigmas, y_pred_dyn - 1.96*dyn_se, y_pred_dyn + 1.96*dyn_se, color='red',  alpha = 0.3)
+    axes[1].fill_between(sigmas, y_pred_con - 1.96*con_se, y_pred_con + 1.96*con_se, color='red', alpha = 0.3)
+
+    #axes[0].text(1, -2, f'95% CI for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]', fontsize = 7) # x1.96 for 95% CI
+    #axes[1].text(1, -2, f'95% CI for Slope = [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]', fontsize = 7)
+    # plotting text is difficult for different values, for now print
+    print(f'\033[1m\033[4mDynamic Noise 95% Confidence Interval for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]')
+    print(f'\033[4m\033[1mConstant Noise 95% Confidence Interval for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}')
+    
+    axes[0].axhline(y=1, color='black', linestyle='-', linewidth=1)
+    axes[1].axhline(y=1, color='black', linestyle='-', linewidth=1)
+    axes[0].set_xlabel('Sigma for Input Noise')
+    axes[0].set_title(f'Dynamic Noise (100 neurons, Region={region})\nNormalized by Mean Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized 
+                    else f'Dynamic Noise (100 neurons, Region={region})\nStochastic Binarization Plotted at Point 50', fontsize = 11)
+    axes[1].set_title(f'Constant Noise (100 neurons, Region={region})\nNormalized by Mean Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized
+                      else f'Constant Noise (100 neurons, Region={region})\nStochastic Binarization Plotted at Point 50', fontsize = 11)
+    axes[0].set_ylabel('Mean Prediction\nSpike Count' if mean_plot else 'Variance in\nPredicted Spike Count')
+    axes[1].set_xlabel('Sigma for Input Noise')
+    axes[0].legend()
+    axes[1].legend()
+    plt.tight_layout()
+    plt.show()
