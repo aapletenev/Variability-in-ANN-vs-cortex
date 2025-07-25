@@ -499,18 +499,18 @@ def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool,
     #axes[1].text(1, -2, f'95% CI for Slope = [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]', fontsize = 7)
     # plotting text is difficult for different values, for now print
     print(f'\033[1m\033[4mDynamic Noise 95% Confidence Interval for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]')
-    print(f'\033[4m\033[1mConstant Noise 95% Confidence Interval for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}')
+    print(f'\033[4m\033[1mConstant Noise 95% Confidence Interval for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]')
     
     axes[0].axhline(y=1, color='black', linestyle='-', linewidth=1)
     axes[1].axhline(y=1, color='black', linestyle='-', linewidth=1)
     axes[0].set_xlabel('Sigma for Input Noise')
-    axes[0].set_title(f'Dynamic Noise (100 neurons, Region={region})\nNormalized by Mean Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized 
+    axes[0].set_title(f'Dynamic Noise (100 neurons, Region={region})\nNormalized by Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized 
                     else f'Dynamic Noise (100 neurons, Region={region})\nStochastic Binarization Plotted at Point 50', fontsize = 11)
-    axes[1].set_title(f'Constant Noise (100 neurons, Region={region})\nNormalized by Mean Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized
+    axes[1].set_title(f'Constant Noise (100 neurons, Region={region})\nNormalized by Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized
                       else f'Constant Noise (100 neurons, Region={region})\nStochastic Binarization Plotted at Point 50', fontsize = 11)
     axes[0].set_ylabel('Mean Prediction\nSpike Count' if mean_plot else 'Variance in\nPredicted Spike Count')
     axes[1].set_xlabel('Sigma for Input Noise')
-    axes[0].legend()
-    axes[1].legend()
+    axes[0].legend(loc='upper left')
+    axes[1].legend(loc='upper left')
     plt.tight_layout()
     plt.show()
