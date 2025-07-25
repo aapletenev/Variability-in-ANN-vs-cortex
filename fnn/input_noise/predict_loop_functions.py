@@ -434,7 +434,7 @@ def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in ran
 This function assumes three sigmas values of 3,15,30 and then a stochastic binarization which is plotted last.
 Thus, both inputted lists must have four different arrays of means/variance predictions from prediction loop.
 """
-def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool, 
+def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool, # PLOT FOR GRAY IMAGE ONLY
                normalized: bool, region: int, sigmas: list = [3, 15, 30], num_neurons: int = 100):
     """
     Parameters
