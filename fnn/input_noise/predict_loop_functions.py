@@ -344,14 +344,16 @@ def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
 
     return folder_id, image_ids, np.stack(final_array, axis = 0)
 
-def filter_region(region_input: int, num_images: int, label_mapping, array):
+"""
+make mask generic for different brain regions 
+use for loop with list of regions
+"""
+def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     """
     Parameters
     ----------
     region_input: int
         specified region to output
-    num_images: int
-        number of images used for predict_loop()
     label_mapping: label
         mapping output from scans()
     array: np.array
@@ -362,10 +364,8 @@ def filter_region(region_input: int, num_images: int, label_mapping, array):
     array
         filtered array where brain region is equal to region_input
     """
-    if (array.ndim == 3): label_mapping = np.repeat(label_mapping[:, np.newaxis, :], array.shape[1], axis = 1)
-    concat_array = np.concatenate((array, label_mapping), axis=0)
-    region_indices = np.where(concat_array[num_images] == region_input)
-    return array[..., region_indices[0]]
+    mask=label_mapping==region_input
+    return array[..., np.squeeze(mask)]
 
 """
 visualization functions
@@ -435,7 +435,7 @@ This function assumes three sigmas values of 3,15,30 and then a stochastic binar
 Thus, both inputted lists must have four different arrays of means/variance predictions from prediction loop.
 """
 def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool, 
-               normalized: bool, region: int, sigmas: list = [3, 15, 30, 50]):
+               normalized: bool, region: int, sigmas: list = [3, 15, 30], num_neurons: int = 100):
     """
     Parameters
     ----------
@@ -451,6 +451,8 @@ def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool,
         input region from brain for title
     sigmas: list
         defaults to list of sigma values for noise used for initial runs
+    num_neurons: int
+        number of neurons to plot, defaults to 100
     
     Returns
     -------
@@ -459,34 +461,37 @@ def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool,
     """
     fig, axes = plt.subplots(1,2, figsize = (8,6), sharey = True)
 
-    sigmas = np.array([3, 15, 30, 50]) # making stochastic bin. 50 here, what should it be?
+    sigmas = np.array([3, 15, 30])
 
     colors = plt.cm.tab20(np.linspace(0, 1, 100))  # 100 colors for 100 neurons
 
-    for i in range(100):
-        dynamic_y = ([dynamic_array[0][i], dynamic_array[1][i], dynamic_array[2][i], dynamic_array[3][i]] / dynamic_array[0][i] if normalized
-        else [dynamic_array[0][i], dynamic_array[1][i], dynamic_array[2][i], dynamic_array[3][i]])
-        constant_y = ([constant_array[0][i], constant_array[1][i], constant_array[2][i], constant_array[3][i]] / constant_array[0][i] if normalized
-                      else [constant_array[0][i], constant_array[1][i], constant_array[2][i], constant_array[3][i]])
+    dynamic_means_y = np.empty((num_neurons, len(sigmas)))
+    constant_means_y = np.empty((num_neurons, len(sigmas)))
+
+    for i in range(num_neurons):
+        dynamic_y = np.array([dynamic_array[0][i], dynamic_array[1][i], dynamic_array[2][i]]) / dynamic_array[0][i] if normalized else np.array(
+            [dynamic_array[0][i], dynamic_array[1][i], dynamic_array[2][i]])
+        constant_y = np.array([constant_array[0][i], constant_array[1][i], constant_array[2][i]]) / constant_array[0][i] if normalized else np.array(
+            [constant_array[0][i], constant_array[1][i], constant_array[2][i]])
 
         axes[0].plot(sigmas, dynamic_y, marker='o', linestyle='-', alpha=0.5, color = colors[i])
 
         axes[1].plot(sigmas, constant_y, marker='o', linestyle='-', alpha=0.5, color = colors[i])
         
-    dynamic_mean_y = np.mean(dynamic_array, axis=1) / np.mean(dynamic_array[0])  
-    constant_mean_y = np.mean(constant_array, axis=1) / np.mean(constant_array[0])
+        dynamic_means_y[i] = dynamic_y
+        constant_means_y[i] = constant_y
 
-    slope_dyn, intercept_dyn, r_value_dyn, p_value_dyn, std_err_dyn = linregress(sigmas, dynamic_mean_y)
+    dynamic_mean_plot = np.mean(dynamic_means_y, axis = 0) / np.mean(dynamic_means_y[0], axis = 0) if normalized else np.mean(dynamic_means_y, axis = 0)
+    constant_mean_plot = np.mean(dynamic_means_y, axis=0) / np.mean(constant_means_y[0], axis=0) if normalized else np.mean(constant_means_y, axis = 0)
+
+    slope_dyn, intercept_dyn, r_value_dyn, p_value_dyn, std_err_dyn = linregress(sigmas, dynamic_mean_plot)
     y_pred_dyn = intercept_dyn + slope_dyn * sigmas
-
-    slope_con, intercept_con, r_value_con, p_value_con, std_err_con = linregress(sigmas, constant_mean_y)
+    slope_con, intercept_con, r_value_con, p_value_con, std_err_con = linregress(sigmas, constant_mean_plot)
     y_pred_con = intercept_con + slope_con * sigmas
 
 
-    axes[0].plot(sigmas, y_pred_dyn, 'o')
     axes[0].plot(sigmas, y_pred_dyn, 'r-', label='Regression line, Dynamic Noise', color = 'red', linewidth = 2)
 
-    axes[1].plot(sigmas, y_pred_con, 'o')
     axes[1].plot(sigmas, y_pred_con, 'r-', label='Regression line, Constant Noise', color = 'red', linewidth = 2)
 
     # error band/SE
@@ -504,10 +509,10 @@ def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool,
     axes[0].axhline(y=1, color='black', linestyle='-', linewidth=1)
     axes[1].axhline(y=1, color='black', linestyle='-', linewidth=1)
     axes[0].set_xlabel('Sigma for Input Noise')
-    axes[0].set_title(f'Dynamic Noise (100 neurons, Region={region})\nNormalized by Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized 
-                    else f'Dynamic Noise (100 neurons, Region={region})\nStochastic Binarization Plotted at Point 50', fontsize = 11)
-    axes[1].set_title(f'Constant Noise (100 neurons, Region={region})\nNormalized by Response at Sigma=3\nStochastic Binarization Plotted at Point 50' if normalized
-                      else f'Constant Noise (100 neurons, Region={region})\nStochastic Binarization Plotted at Point 50', fontsize = 11)
+    axes[0].set_title(f'Dynamic Noise ({num_neurons} neurons, Region={region})\nNormalized by Response at Sigma=3' if normalized 
+                    else f'Dynamic Noise ({num_neurons} neurons, Region={region})', fontsize = 11)
+    axes[1].set_title(f'Constant Noise (100 neurons, Region={region})\nNormalized by Response at Sigma=3' if normalized
+                      else f'Constant Noise (100 neurons, Region={region})', fontsize = 11)
     axes[0].set_ylabel('Mean Prediction\nSpike Count' if mean_plot else 'Variance in\nPredicted Spike Count')
     axes[1].set_xlabel('Sigma for Input Noise')
     axes[0].legend(loc='upper left')
