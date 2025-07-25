@@ -4,6 +4,7 @@ from numpy import full
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from matplotlib.ticker import MultipleLocator
 import sys
 from fnn.microns.__init__ import scan
 from scipy.stats import shapiro, linregress
@@ -361,10 +362,9 @@ def filter_region(region_input: int, num_images: int, label_mapping, array):
     array
         filtered array where brain region is equal to region_input
     """
-    
+    if (array.ndim == 3): label_mapping = np.repeat(label_mapping[:, np.newaxis, :], array.shape[1], axis = 1)
     concat_array = np.concatenate((array, label_mapping), axis=0)
     region_indices = np.where(concat_array[num_images] == region_input)
-
     return array[..., region_indices[0]]
 
 """
@@ -512,5 +512,38 @@ def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool,
     axes[1].set_xlabel('Sigma for Input Noise')
     axes[0].legend(loc='upper left')
     axes[1].legend(loc='upper left')
+    plt.tight_layout()
+    plt.show()
+
+def five_turning_curves(arrays: list | np.ndarray, titles: list, ten_neurons: list = [i for i in range(10)]):
+    """
+    Parameters
+    ----------
+    arrays: list
+        list of output arrys to plot (sum arrays from predict loop)
+    titles: list
+        list of corresponding titles for each plot
+    ten_neurons: list
+        list of ten neurons to use, defaults to first ten 
+    """
+    fig, axes = plt.subplots(5, 1, figsize=(4, 20), sharex=True)
+
+    image_ids = np.array([i for i in range(5)], dtype=int)
+
+    for ax, array, title in zip(axes, arrays, titles):
+        mean_array = np.mean(array, axis=1) 
+        variance = np.var(array, axis=1)
+        std_dev = np.sqrt(variance)
+
+        for neuron in ten_neurons:
+            neuron_predictions = mean_array[:, neuron]
+            ax.errorbar(image_ids, neuron_predictions, yerr=std_dev[:, neuron],
+                        marker='o', linestyle='-', capsize=5)
+
+        ax.set_title(f"{title}", fontsize=10)
+        ax.set_ylabel("Mean Predicted Spike Count")
+        ax.xaxis.set_major_locator(MultipleLocator(1))
+        ax.grid(True)
+    plt.xlabel('Image ID')
     plt.tight_layout()
     plt.show()
