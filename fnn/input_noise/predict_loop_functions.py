@@ -410,7 +410,8 @@ def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram fo
     neuron_pvalue['p_value'] = neuron_pvalue['p_value'].round(3)
     print(neuron_pvalue)
 
-def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in range(100)]): # input mean/var output from predict_loop()
+def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in range(100)],
+                   specified_image_index: int = None): # input mean/var output from predict_loop()
     """
     Parameters
     ----------
@@ -418,6 +419,8 @@ def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in ran
         mean/var output from predict loop
     neurons: list or np.array
         list of specified neurons to pick, defaults to first 100
+    specified_image_index: int
+        if inputted will format line plot data for specified image
 
     Returns
     -------
@@ -426,8 +429,8 @@ def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in ran
     """
     final_array = np.empty(shape = len(neurons))
     for i, neuron in enumerate(neurons):
-        avg = np.mean(array[:,neuron])
-        final_array[i] = avg
+        if specified_image_index is not None: final_array[i] =  array[specified_image_index, neuron] # if input is just one image
+        else: final_array[i] = np.mean(array[:, neuron]) # if input is for all images
     return final_array
 
 """
