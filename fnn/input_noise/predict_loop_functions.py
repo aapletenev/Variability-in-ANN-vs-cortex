@@ -281,6 +281,28 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
 """
 helper functions
 """
+def remove_outliers_topk(arr: list | np.ndarray, removal: str, k_percent: int): # edit function to take % (k) as input
+    """
+    arr: list or ndarray
+        array or list to filter from
+    removal: str
+        section of dataset to remove, top, bottom, or both would return the middle partition (for example an input of top with k = 15 
+        would remove the top 15% of the dataset, while an input of both with k = 5 would remove the top and bottom 5%, returning middle 90%)
+    k_percent: int
+        % to remove 
+    """
+    if type(arr) == np.ndarray: arr = arr.flatten()
+    k = k_percent * len(arr)
+
+    if removal == 'top': k_partition = np.argpartition(arr, -k)[-k:]
+    elif removal == 'bottom': k_partition = np.argpartition(arr, k)[:k]
+    elif removal == 'both': k_partition = np.argpartition(arr, k) 
+
+    mask = np.ones(len(arr), dtype=bool)
+    mask[k_largest] = False
+    mask[k_smallest] = False
+
+    return arr[mask]
 
 def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
     """
