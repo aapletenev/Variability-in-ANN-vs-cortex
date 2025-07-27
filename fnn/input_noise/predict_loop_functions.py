@@ -1,6 +1,6 @@
 import os 
 import numpy as np
-from numpy import full
+from numpy import argpartition
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -292,15 +292,24 @@ def remove_outliers_topk(arr: list | np.ndarray, removal: str, k_percent: int): 
         % to remove 
     """
     if type(arr) == np.ndarray: arr = arr.flatten()
-    k = k_percent * len(arr)
-
-    if removal == 'top': k_partition = np.argpartition(arr, -k)[-k:]
-    elif removal == 'bottom': k_partition = np.argpartition(arr, k)[:k]
-    elif removal == 'both': k_partition = np.argpartition(arr, k) 
+    k = round(k_percent * len(arr))
 
     mask = np.ones(len(arr), dtype=bool)
-    mask[k_largest] = False
-    mask[k_smallest] = False
+
+    if removal == 'top':
+        k_partition = argpartition(arr, -k)[:-k]
+        mask[k_partition] = False
+    elif removal == 'bottom':
+        k_partition = argpartition(arr, k)[:k]
+        mask[k_partition] = False
+    elif removal == 'both':
+        # Remove k from both ends
+        top_k = argpartition(arr, -k)[-k:]
+        bottom_k = argpartition(arr, k)[:k]
+        mask[top_k] = False
+        mask[bottom_k] = False
+    else:
+        raise ValueError("removal must be 'top', 'bottom', or 'both'")
 
     return arr[mask]
 
