@@ -561,7 +561,7 @@ def five_turning_curves(arrays: list | np.ndarray, titles: list, ten_neurons: li
     plt.show()
 
 def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool, 
-                   normalized: bool, sigmas: list = [3, 15, 30], num_neurons: int = 100):
+                   normalized: bool, sigmas: list = [3, 15, 30], num_neurons: int = 100, num_regions: int = 4):
     """
     Parameters
     ----------
@@ -579,6 +579,8 @@ def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool,
         List of sigma values for noise, defaults to [3, 15, 30]
     num_neurons: int
         Number of neurons to plot, defaults to 100
+    num_regions: int
+        Number of brain regions from data, defaults to 4
     
     Returns
     -------
@@ -588,7 +590,6 @@ def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool,
     """
     fig, axes = plt.subplots(4, 2, figsize=(8, 12), sharey=True, sharex=True)
     sigmas = np.array(sigmas)
-    num_regions = 4  # Fixed to 4 rows
     colors = plt.cm.tab20(np.linspace(0, 1, num_neurons))
 
     for region in range(num_regions):
@@ -636,7 +637,7 @@ def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool,
         ax_con.plot(sigmas, y_pred_con, 'r-', label='Regression line', linewidth=2)
         con_se = std_err_con * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
         ax_con.fill_between(sigmas, y_pred_con - 1.96*con_se, y_pred_con + 1.96*con_se, color='red', alpha=0.3)
-        print(f"Region {region}, Constant Noise 95% CI for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]")
+        print(f"Region {region+1}, Constant Noise 95% CI for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]")
         if not normalized:
             ax_con.text(0.05, 0.8, f'Slope: {slope_con:.3f}', transform=ax_con.transAxes, ha='left', va='top')
         if normalized:
