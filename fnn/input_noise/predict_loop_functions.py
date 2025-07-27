@@ -434,8 +434,8 @@ def line_plot_mean(array: np.array, neurons: list | np.ndarray = [i for i in ran
     return final_array
 
 """
-This function assumes three sigmas values of 3,15,30 and then a stochastic binarization which is plotted last.
-Thus, both inputted lists must have four different arrays of means/variance predictions from prediction loop.
+This function assumes three sigmas values of 3,15, and 30.
+Thus, both inputted lists must have three different arrays of means/variance predictions from prediction loop.
 """
 def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool, # PLOT FOR GRAY IMAGE ONLY
                normalized: bool, region: int, sigmas: list = [3, 15, 30], num_neurons: int = 100):
@@ -509,6 +509,10 @@ def spike_plot(dynamic_array: list, constant_array: list, mean_plot: bool, # PLO
     print(f'\033[1m\033[4mDynamic Noise 95% Confidence Interval for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]')
     print(f'\033[4m\033[1mConstant Noise 95% Confidence Interval for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]')
     
+    if not normalized: 
+        axes[0].text(2, axes[0].get_ylim()[1]-4.5, f'Slope: {slope_dyn:.3f}')
+        axes[1].text(2, axes[1].get_ylim()[1]-4.5, f'Slope: {slope_con:.3f}')
+
     axes[0].axhline(y=1, color='black', linestyle='-', linewidth=1)
     axes[1].axhline(y=1, color='black', linestyle='-', linewidth=1)
     axes[0].set_xlabel('Sigma for Input Noise')
@@ -555,3 +559,103 @@ def five_turning_curves(arrays: list | np.ndarray, titles: list, ten_neurons: li
     plt.xlabel('Image ID')
     plt.tight_layout()
     plt.show()
+
+def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool, 
+                   normalized: bool, sigmas: list = [3, 15, 30], num_neurons: int = 100):
+    """
+    Parameters
+    ----------
+    dynamic_array: list
+        List of lists where each sublist contains arrays of mean/var spike counts 
+        for different sigmas across neurons for a region
+    constant_array: list
+        List of lists where each sublist contains arrays of mean/var spike counts 
+        for different sigmas across neurons for a region
+    mean_plot: bool
+        If True, plot mean spike counts; if False, plot variance
+    normalized: bool
+        If True, normalize values by the response at the first sigma
+    sigmas: list
+        List of sigma values for noise, defaults to [3, 15, 30]
+    num_neurons: int
+        Number of neurons to plot, defaults to 100
+    
+    Returns
+    -------
+    matplotlib plot
+        4x2 grid of line plots, each row for a region, with dynamic noise in column 0 
+        and constant noise in column 1
+    """
+    fig, axes = plt.subplots(4, 2, figsize=(8, 12), sharey=True, sharex=True)
+    sigmas = np.array(sigmas)
+    num_regions = 4  # Fixed to 4 rows
+    colors = plt.cm.tab20(np.linspace(0, 1, num_neurons))
+
+    for region in range(num_regions):
+        ax_dyn = axes[region, 0]
+        ax_con = axes[region, 1]
+        dynamic_data = dynamic_array[region]  # List of arrays for sigmas in this region
+        constant_data = constant_array[region]
+
+        # Dynamic noise plot
+        dynamic_means_y = np.empty((num_neurons, len(sigmas)))
+        for i in range(num_neurons):
+            dynamic_y = np.array([dynamic_data[s_idx][i] for s_idx in range(len(sigmas))])
+            if normalized and dynamic_data[0][i] != 0:
+                dynamic_y = dynamic_y / dynamic_data[0][i]
+            dynamic_means_y[i] = dynamic_y
+            ax_dyn.plot(sigmas, dynamic_y, marker='o', linestyle='-', alpha=0.5, color=colors[i])
+
+        dynamic_mean_plot = np.mean(dynamic_means_y, axis=0)
+        slope_dyn, intercept_dyn, _, _, std_err_dyn = linregress(sigmas, dynamic_mean_plot)
+        y_pred_dyn = intercept_dyn + slope_dyn * sigmas
+        ax_dyn.plot(sigmas, y_pred_dyn, 'r-', label='Regression line', linewidth=2)
+        dyn_se = std_err_dyn * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
+        ax_dyn.fill_between(sigmas, y_pred_dyn - 1.96*dyn_se, y_pred_dyn + 1.96*dyn_se, color='red', alpha=0.3)
+        print(f"Region {region}, Dynamic Noise 95% CI for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]")
+        if not normalized:
+            ax_dyn.text(0.05, 0.8, f'Slope: {slope_dyn:.3f}', transform=ax_dyn.transAxes, ha='left', va='top')
+        if normalized:
+            ax_dyn.axhline(y=1, color='black', linestyle='-', linewidth=1)
+        ax_dyn.set_title(f'Dynamic Noise, Region {region}' + 
+                         (f'\nNormalized by Response at Sigma={sigmas[0]}' if normalized else ''), 
+                         fontsize=11) if region == 0 else ''
+
+        # Constant noise plot
+        constant_means_y = np.empty((num_neurons, len(sigmas)))
+        for i in range(num_neurons):
+            constant_y = np.array([constant_data[s_idx][i] for s_idx in range(len(sigmas))])
+            if normalized and constant_data[0][i] != 0:
+                constant_y = constant_y / constant_data[0][i]
+            constant_means_y[i] = constant_y
+            ax_con.plot(sigmas, constant_y, marker='o', linestyle='-', alpha=0.5, color=colors[i])
+
+        constant_mean_plot = np.mean(constant_means_y, axis=0)
+        slope_con, intercept_con, _, _, std_err_con = linregress(sigmas, constant_mean_plot)
+        y_pred_con = intercept_con + slope_con * sigmas
+        ax_con.plot(sigmas, y_pred_con, 'r-', label='Regression line', linewidth=2)
+        con_se = std_err_con * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
+        ax_con.fill_between(sigmas, y_pred_con - 1.96*con_se, y_pred_con + 1.96*con_se, color='red', alpha=0.3)
+        print(f"Region {region}, Constant Noise 95% CI for Slope: [{slope_con - 1.96 * std_err_con:.3f}, {slope_con + 1.96 * std_err_con:.3f}]")
+        if not normalized:
+            ax_con.text(0.05, 0.8, f'Slope: {slope_con:.3f}', transform=ax_con.transAxes, ha='left', va='top')
+        if normalized:
+            ax_con.axhline(y=1, color='black', linestyle='-', linewidth=1)
+        ax_con.set_title(f'Constant Noise' + 
+                         (f'\nNormalized by Response at Sigma={sigmas[0]}' if normalized else ''), 
+                         fontsize=11) if region == 0 else ''
+
+        # Y-axis label for each region (left column only)
+        ax_dyn.set_ylabel(f'Mean Prediction\nSpike Count\n(Region {region+1})' if mean_plot else f'Variance in\nPredicted Spike Count\n(Region {region+1})')
+
+    # X-axis labels for bottom row only
+    axes[3, 0].set_xlabel('Sigma for Input Noise')
+    axes[3, 1].set_xlabel('Sigma for Input Noise')
+
+    # Add legend to each subplot
+    for ax in axes.flat:
+        ax.legend(loc='upper left')
+
+    plt.tight_layout()
+    plt.show()
+
