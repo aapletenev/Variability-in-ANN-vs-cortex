@@ -657,7 +657,7 @@ def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool,
         ax_dyn.plot(sigmas, y_pred_dyn, 'r-', label='Regression line', linewidth=2)
         dyn_se = std_err_dyn * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
         ax_dyn.fill_between(sigmas, y_pred_dyn - 1.96*dyn_se, y_pred_dyn + 1.96*dyn_se, color='red', alpha=0.3)
-        print(f"Region {region}, Dynamic Noise 95% CI for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]")
+        print(f"Region {region+1}, Dynamic Noise 95% CI for Slope: [{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]")
         if not normalized:
             ax_dyn.text(0.05, 0.8, f'Slope: {slope_dyn:.3f}', transform=ax_dyn.transAxes, ha='left', va='top')
         if normalized:
