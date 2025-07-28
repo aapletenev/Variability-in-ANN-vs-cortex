@@ -281,37 +281,50 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
 """
 helper functions
 """
-def remove_outliers_topk(arr: list | np.ndarray, removal: str, k_percent: int): # edit function to take % (k) as input
+def remove_outliers_topk(arr: list | np.ndarray, removal: str, k_percent: float):
+    """   
+    Parameters
+    ----------
+    arr : list or np.ndarray
+        Array or list to filter from
+    removal : str
+        Section of dataset to remove: 'top', 'bottom', or 'both'
+        - 'top' removes the top k_percent of the dataset
+        - 'bottom' removes the bottom k_percent of the dataset
+        - 'both' removes k_percent from both top and bottom, returning the middle
+    k_percent : float
+        Percentage (0 to 100) of elements to remove from each end
+    
+    Returns
+    -------
+    np.ndarray
+        Array with outliers removed, preserving original order
     """
-    arr: list or ndarray
-        array or list to filter from
-    removal: str
-        section of dataset to remove, top, bottom, or both would return the middle partition (for example an input of top with k = 15 
-        would remove the top 15% of the dataset, while an input of both with k = 5 would remove the top and bottom 5%, returning middle 90%)
-    k_percent: int
-        % to remove 
-    """
-    if type(arr) == np.ndarray: arr = arr.flatten()
-    k = round(k_percent * len(arr))
+    if isinstance(arr, np.ndarray):
+        arr = arr.flatten()
+    else:
+        arr = np.array(arr)
 
-    mask = np.ones(len(arr), dtype=bool)
+    k = round(k_percent / 100 * len(arr))
+    k = max(1, min(k, len(arr) // 2)) 
 
     if removal == 'top':
-        k_partition = argpartition(arr, -k)[:-k]
-        mask[k_partition] = False
+        partition_indices = np.argpartition(arr, kth=k)
+        indices = partition_indices[:-k]  
     elif removal == 'bottom':
-        k_partition = argpartition(arr, k)[:k]
-        mask[k_partition] = False
+        partition_indices = np.argpartition(arr, kth=len(arr) - k - 1)
+        indices = partition_indices[k:] 
     elif removal == 'both':
-        # Remove k from both ends
-        top_k = argpartition(arr, -k)[-k:]
-        bottom_k = argpartition(arr, k)[:k]
-        mask[top_k] = False
-        mask[bottom_k] = False
+        top_k_indices = np.argpartition(arr, -k)[-k:]
+        bottom_k_indices = np.argpartition(arr, k)[:k]
+        exclude_indices = np.concatenate([top_k_indices, bottom_k_indices])
+        indices = np.setdiff1d(np.arange(len(arr)), exclude_indices)
     else:
         raise ValueError("removal must be 'top', 'bottom', or 'both'")
 
-    return arr[mask]
+    indices = np.unique(indices)
+    return arr[indices]
+
 
 def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
     """
