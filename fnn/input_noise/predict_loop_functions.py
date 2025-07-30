@@ -326,6 +326,30 @@ def remove_outliers_topk(arr: list | np.ndarray, removal: str, k_percent: float)
     return arr[indices]
 
 
+
+def remove_x(arr: list or np.array, remove: str, k_percent: int):
+    """
+    Parameters
+    ----------
+    arr: list or np.array
+        object that we are removing from
+    remove: str
+        where to remove values from
+    k_percent: int
+        what percent to cut off (enter as int, ie if you want to remove 10% enter 10)
+    """
+    if len(arr) <= 1:
+        return np.arange(len(arr))  
+        
+    n_remove = int(k_percent / 100 * len(arr))
+    n_keep = max(1, len(arr) - n_remove)
+    
+    if remove == 'top':
+        return arr[:n_keep]
+    elif remove == 'bottom':  # remove == 'bottom'
+        return arr[-n_keep:]
+    else: raise ValueError("Please enter 'top' or 'bottom' as an argument for remove.")
+
 def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
     """
     NOTE: directory structure for subfolers as follows
