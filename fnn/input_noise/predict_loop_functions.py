@@ -145,7 +145,7 @@ def get_brain_region(ids: pd.DataFrame, num_neurons: int, encoding : dict = {'V1
 
 def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
     num_neurons = get_neuron_units(scans)
-    noise_results = np.empty((noise_seeds, num_frames, num_neurons)) # check with anton, last dim should always be equal to 2
+    noise_results = np.empty((noise_seeds, num_frames, num_neurons))
     """
     Parameters
     ----------
