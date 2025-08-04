@@ -337,17 +337,27 @@ def remove_x(arr: list or np.array, remove: str, k_percent: int):
         where to remove values from
     k_percent: int
         what percent to cut off (enter as int, ie if you want to remove 10% enter 10)
+
+    Returns
+    -------
+    arr
+        sorted arr with top/bottom values removed
+    indices
+        indices for relevant portion of data
     """
-    if len(arr) <= 1:
-        return np.arange(len(arr))  
-        
+    
+    if type(arr) == list: arr = np.array(arr)
+
+    indices = np.argsort(arr)
+    arr = arr[indices]
+
     n_remove = int(k_percent / 100 * len(arr))
     n_keep = max(1, len(arr) - n_remove)
     
     if remove == 'top':
-        return arr[:n_keep]
-    elif remove == 'bottom':  # remove == 'bottom'
-        return arr[-n_keep:]
+        return arr[:n_keep], indices[:n_keep]
+    elif remove == 'bottom': 
+        return arr[-n_keep:], indices[-n_keep]
     else: raise ValueError("Please enter 'top' or 'bottom' as an argument for remove.")
 
 def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
