@@ -199,24 +199,16 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
                 prediction = model.predict(new_image)
             return prediction
 
-        else: noise_type_process = noise_type # case: no stochastic bin. 
+        else:  # case: no stochastic bin. 
         
-        new_noise = generate_noise(noise_type_process, num_frames, sigma)
-        new_image = (image + new_noise).astype('uint8')
-        
-        for model, ids in zip(model_list, id_list):
-            prediction = model.predict(new_image)
-        
-        return prediction
+            new_noise = generate_noise(noise_type, num_frames, sigma)
+            new_image = (image + new_noise).astype('uint8')
+            
+            for model, ids in zip(model_list, id_list):
+                prediction = model.predict(new_image)
+            
+            return prediction
     
-    """
-    with ThreadPoolExecutor(max_workers=None) as executor:
-        for i, result in enumerate(executor.map(
-            lambda i: process_noise_seed(noise_type, image),
-            range(noise_seeds)
-        )):
-            noise_results[i] = result
-"""
     for i in range(noise_seeds):
         result = process_noise_seed(noise_type, image)
         noise_results[i] = result
@@ -224,6 +216,7 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
     return noise_results
 
 def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
+    
     """
     Parameters
     ----------
