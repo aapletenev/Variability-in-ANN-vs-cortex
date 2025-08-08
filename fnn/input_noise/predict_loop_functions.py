@@ -186,11 +186,13 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         array
             concatenated object of all predictions for every scan and noise seed
         """
-        if stochastic_bin_param: 
+        
+        if stochastic_bin_param == True: 
             # constant stochastic binarization
-            if noise_type == 'constant': new_image = stochastic_binarization(image)
+            if noise_type == 'constant': new_image = np.clip(stochastic_binarization(image), a_min = 0, a_max = 255)
             # dynamic stochastic binarization
-            elif noise_type == 'dynamic': new_image = np.array([stochastic_binarization(frame) for frame in image])       
+            elif noise_type == 'dynamic': new_image = np.clip(np.array([stochastic_binarization(frame) for frame in image]),
+                                                  a_min = 0, a_max = 255)
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
@@ -199,15 +201,16 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
                 prediction = model.predict(new_image)
             return prediction
 
-        else:  # case: no stochastic bin. 
+        elif stochastic_bin_param == False:  # case: no stochastic bin. 
         
             new_noise = generate_noise(noise_type, num_frames, sigma)
-            new_image = (image + new_noise).astype('uint8')
-            
+            new_image = np.clip((image + new_noise).astype('uint8'), a_min = 0, a_max = 255) # clip values up to 255
+
             for model, ids in zip(model_list, id_list):
-                prediction = model.predict(new_image)
+                prediction = model.predict(new_image).astype('uint8')
             
             return prediction
+        else: raise ValueError ('---Enter "true" or "false" for stchastic_bin_param.---')
     
     for i in range(noise_seeds):
         result = process_noise_seed(noise_type, image)
@@ -394,26 +397,34 @@ def random_images(num, train = True, path = os.path.join("//imagenet-mini")):
     else: train_val = '//val'
 
     folder_path = path + train_val # get path to train/val folders
+
+    visited_folders = [] # keep record of visited folders
+
+
     initial_folders = os.listdir(folder_path)
 
-    folder_id = np.random.randint(0, len(initial_folders) - 1) # get path to random folder within train/val
-    image_folder_path = folder_path + '//' + initial_folders[folder_id]
+    possible_folders = [i for i in range(np.random.randint(0, len(initial_folders) - 1)) if i not in visited_folders]
 
-    image_folder = os.listdir(image_folder_path) # path to folder in train/val with images
+    while possible_folders:    
+        visited_subfolder
 
-    image_ids = np.random.randint(0,len(image_folder) - 1, size = num)
-    final_array = np.empty(shape = (num, 144, 256))
+        image_folder_path = folder_path + '//' + initial_folders[folder_id]
 
-    for i in range(num):
-        image_name = '//' + image_folder[i]
-        image_path = image_folder_path + image_name
-        image = Image.open(image_path)
-        image = image.convert('L')
-        if image.size != (256, 144): image = image.resize((256, 144))
-        image = np.array(image)
-        final_array[i] = image
+        image_folder = os.listdir(image_folder_path) # path to folder in train/val with images
 
-    return folder_id, image_ids, np.stack(final_array, axis = 0)
+        image_ids = np.random.randint(0,len(image_folder) - 1, size = num)
+        final_array = np.empty(shape = (num, 144, 256))
+
+        for i in range(num):
+            image_name = '//' + image_folder[i]
+            image_path = image_folder_path + image_name
+            image = Image.open(image_path)
+            image = image.convert('L')
+            if image.size != (256, 144): image = image.resize((256, 144))
+            image = np.array(image)
+            final_array[i] = image
+
+        return visited_folders, image_ids, np.stack(final_array, axis = 0)
 
 """
 make mask generic for different brain regions 
