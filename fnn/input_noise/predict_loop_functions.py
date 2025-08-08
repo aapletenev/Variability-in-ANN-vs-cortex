@@ -215,7 +215,8 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
     for i in range(noise_seeds):
         result = process_noise_seed(noise_type, image)
         noise_results[i] = result
-
+    # store result as array in directory
+    # delete previous result from memory, re run
     return noise_results
 
 def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
@@ -262,7 +263,7 @@ def predict_loop(noise_type: str, images: np.ndarray, sigma: int, scans, stochas
         ids_list.append(ids)
 
     def process_image(i: int):
-        predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
+        predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0) # need to broadcast?
         return noise_iterations(models_list, ids_list, noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
         
     final_array = np.array([process_image(i) for i in range(len(images))])
