@@ -1,4 +1,11 @@
-#### Code taken from cajal/fnn repository
+## Code taken from cajal/fnn repository
+
+#### *fnn-haefner README*
+Environment
+-----------
+scans.csv and microns_area_labels.csv must be in same directory as executed script. 
+
+#### *cajal/fmm repository README*
 Foundation model of neural activity predicts response to new stimulus types and anatomy
 
 [[`Paper`](https://www.nature.com/articles/s41586-025-08829-y)] [[`BibTeX`](#Citation)]
