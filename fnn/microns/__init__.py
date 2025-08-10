@@ -6,6 +6,7 @@ import tempfile
 import zipfile
 import requests
 from tqdm import tqdm
+import build
 from build import network
 from load import params, units, unit_ids
 
