@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
 import sys
-from fnn.microns.__init__ import scan
+from fnn.microns.main import scan
 from scipy.stats import shapiro, linregress
 from PIL import Image
 
