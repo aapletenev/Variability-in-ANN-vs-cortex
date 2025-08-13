@@ -86,24 +86,49 @@ sixteen_turning_curves(arrays = [[c3_sum_r1, c15_sum_r1, c30_sum_r1, cbin_sum_r1
 
 #code to efficiently load predicted arrays if they are in the same directory as .npy files
 """
-# in real code we now d3_labels from np.unique() on region label output from predictions
-d3_labels = [1,2,3,4]
+# in real code we now labels_lst from np.unique() on region label output from predictions
+labels_lst = [1,2,3,4]
 
-string_path = 'fnn//input_noise//saved_inputs_outputs//predictions_july21//'
+string_path = 'fnn//input_noise//saved_inputs_outputs//predictions_july21//' # ex. path to predictions used from july
 
 for noise in ['c3', 'c15', 'c30', 'd3', 'd15', 'd30', 'dbin', 'cbin', 'no_noise']:
     for type_noise in ['_sum', '_mean', '_var', '_labels']:
         file_name = string_path + noise + type_noise + '.npy'
-        var_name = noise + type_noise
-        globals()[var_name] = np.load(file_name)
+        arr_name = noise + type_noise
+        globals()[arr_name] = np.load(file_name)
 
 # load predictions by region
-for region in np.unique(d3_labels):
+for r in labels_lst:
     for noise in ['c3', 'c15', 'c30', 'd3', 'd15', 'd30', 'dbin', 'cbin', 'no_noise']:
         for type_noise in ['_sum', '_mean', '_var']:
-            array_name = string_path + noise + type_noise + '_r' + str(region) + '.npy'
-            globals()[array_name] = np.load(array_name)
+            file_name = string_path + noise + type_noise + '_r' + str(r) + '.npy'
+            arr_name = noise + type_noise + '_r' + str(r)
+            globals()[arr_name] = np.load(file_name)
 
+"""
+
+# example 2d lists used for these plots
+"""
+dmeans1 = [[d3_mean_r1, d15_mean_r1, d30_mean_r1, dbin_mean_r1],
+                 [d3_mean_r2, d15_mean_r2, d30_mean_r2, dbin_mean_r2],
+                 [d3_mean_r3, d15_mean_r3, d30_mean_r3, dbin_mean_r3],
+                 [d3_mean_r4, d15_mean_r4, d30_mean_r4, dbin_mean_r4]]
+
+dvars1 = [[d3_var_r1, d15_var_r1, d30_var_r1, dbin_var_r1],
+               [d3_var_r2, d15_var_r2, d30_var_r2, dbin_var_r2],
+               [d3_var_r3, d15_var_r3, d30_var_r3, dbin_var_r3],
+               [d3_var_r4, d15_var_r4, d30_var_r4, dbin_var_r4]]
+
+(region 1 excluded)
+dmeans2 = [[d15_mean_r1, d30_mean_r1, dbin_mean_r1],
+                 [d15_mean_r2, d30_mean_r2, dbin_mean_r2],
+                 [d15_mean_r3, d30_mean_r3, dbin_mean_r3],
+                 [d15_mean_r4, d30_mean_r4, dbin_mean_r4]]
+
+dvars2 = [[d15_var_r1, d30_var_r1, dbin_var_r1],
+               [d15_var_r2, d30_var_r2, dbin_var_r2],
+               [d15_var_r3, d30_var_r3, dbin_var_r3],
+               [d15_var_r4, d30_var_r4, dbin_var_r4]]
 """
 
 
@@ -328,7 +353,7 @@ def spike_plot_4x2(dynamic_array: list, constant_array: list, mean_plot: bool,
         dynamic_means_y = np.empty((num_neurons, len(sigmas)))
         for i in range(num_neurons):
             dynamic_y = np.array([dynamic_data[s_idx][i] for s_idx in range(len(sigmas))])
-            if normalized and dynamic_data[0][i] != 0:
+            if normalized:
                 dynamic_y = dynamic_y / dynamic_data[0][i]
             dynamic_means_y[i] = dynamic_y
             ax_dyn.plot(sigmas, dynamic_y, marker='o', linestyle='-', alpha=0.5, color=colors[i])
@@ -532,7 +557,7 @@ def mean_var_scatter_4x4_regression(means, vars, neurons, main_title: str, savef
             plt.close()
     else: plt.show()
 
-def violin_4x4(means, vars, main_title: str, savefig: bool = False, remove_x_str: str = None, remove_x_percent: int = None): # first violin plot in presentation results
+def violin_4row(means, vars, main_title: str, savefig: bool = False, remove_x_str: str = None, remove_x_percent: int = None): # first violin plot in presentation results
     """
     Parameters
     ----------
@@ -629,6 +654,8 @@ def violin_4x4(means, vars, main_title: str, savefig: bool = False, remove_x_str
     else: plt.show()
 
 def violin_combined(means, vars, main_title: str, savefig: bool = False): # second violin plot in presentation
+    # this plot looked odd when plotted, possibly due to clip values <0?
+    # there did not seem to be a lower tail, ie flat violin plot for lower values
     """
     Parameters
     ----------
@@ -675,7 +702,9 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
     for cond in range(num_conditions):
         for region_idx in range(len(regions)):
             violin_data.append(all_slope_lists[region_idx][cond])
-            positions.append(cond)
+            base_pos = cond + 1  
+            offset = (region_idx - (len(regions) - 1) / 2) * 0.2 
+            positions.append(base_pos + offset)
             violin_colors.append(colors[region_idx])
     
     vp = ax.violinplot(violin_data, positions=positions, showextrema = False, quantiles = [[0.25, 0.75] for _ in range(len(violin_data))],
@@ -700,7 +729,7 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
     
     ax.set_title(main_title, fontsize=12, fontweight='bold', pad=10)
     
-    plt.ylim(0, .08 * max([np.max(x) for x in violin_data])) # for reference max is a little under 10 here
+    plt.ylim(.75 * min([np.min(x) for x in violin_data]), .08 * max([np.max(x) for x in violin_data])) # for reference max is a little under 10 here
 
     plt.tight_layout()
     
