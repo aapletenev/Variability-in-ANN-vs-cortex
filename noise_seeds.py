@@ -25,8 +25,7 @@ def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0) -> np
     
     elif noise_type == "dynamic": return np.random.normal(loc = mean, scale = sigma, size = (num_frames, 144, 256))
     elif noise_type == "no noise": return np.zeros(shape = (num_frames, 144, 256))
-    else: print("\n---Noise input not recognized, please try again---")
-
+    else: raise ValueError ("\n---Noise input not recognized, please try again---")
 def stochastic_binarization(image_object: np.array) -> np.array:
     """
     Parameters
@@ -90,10 +89,10 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         
         if stochastic_bin_param == True: 
             # constant stochastic binarization
-            if noise_type == 'constant': new_image = np.clip(stochastic_binarization(image), a_min = 0, a_max = 255)
+            if noise_type == 'constant': new_image = np.round(stochastic_binarization(image)).astype('uint8')
             # dynamic stochastic binarization
-            elif noise_type == 'dynamic': new_image = np.clip(np.array([stochastic_binarization(frame) for frame in image]),
-                                                  a_min = 0, a_max = 255)
+            elif noise_type == 'dynamic': new_image = np.round(np.array([stochastic_binarization(frame) for frame in image])).astype('uint8')
+                                                 
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
@@ -105,10 +104,10 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         elif stochastic_bin_param == False:  # case: no stochastic bin. 
         
             new_noise = generate_noise(noise_type, num_frames, sigma)
-            new_image = np.clip((image + new_noise).astype('uint8'), a_min = 0, a_max = 255) # clip values up to 255
+            new_image = np.round((image + new_noise)).astype('uint8') # no need to clip values with this dtype
 
             for model, ids in zip(model_list, id_list):
-                prediction = model.predict(new_image).astype('uint8')
+                prediction = np.clip(model.predict(new_image), a_min = 0, a_max = 255)
             
             return prediction
         else: raise ValueError ('---Enter "true" or "false" for stchastic_bin_param.---')

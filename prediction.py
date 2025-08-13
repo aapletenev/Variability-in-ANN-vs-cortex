@@ -41,7 +41,7 @@ def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, sto
     Parameters
     ----------
     noise_type: string
-        dynamic, constant, stochastic binarization, or no noise
+        dynamic, constant, or no noise
     images: object
         images (usually object from np.stack()) that we are adding noise to and then predicting on
     sigma: int
