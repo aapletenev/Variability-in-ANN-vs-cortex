@@ -89,9 +89,10 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         
         if stochastic_bin_param == True: 
             # constant stochastic binarization
-            if noise_type == 'constant': new_image = np.round(stochastic_binarization(image)).astype('uint8')
+            if noise_type == 'constant': new_image = np.clip(np.round(stochastic_binarization(image)), a_min = 0, a_max = 255).astype('uint8')
             # dynamic stochastic binarization
-            elif noise_type == 'dynamic': new_image = np.round(np.array([stochastic_binarization(frame) for frame in image])).astype('uint8')
+            elif noise_type == 'dynamic': new_image = np.clip(np.round(np.array([stochastic_binarization(frame) for frame in image])),
+                                                              a_min = 0, a_max = 255).astype('uint8')
                                                  
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
@@ -104,10 +105,10 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         elif stochastic_bin_param == False:  # case: no stochastic bin. 
         
             new_noise = generate_noise(noise_type, num_frames, sigma)
-            new_image = np.round((image + new_noise)).astype('uint8') # no need to clip values with this dtype
+            new_image = np.clip(np.round((image + new_noise)),  a_min = 0, a_max = 255).astype('uint8') # no need to clip values with this dtype
 
             for model, ids in zip(model_list, id_list):
-                prediction = np.clip(model.predict(new_image), a_min = 0, a_max = 255)
+                prediction = model.predict(new_image)
             
             return prediction
         else: raise ValueError ('---Enter "true" or "false" for stchastic_bin_param.---')
