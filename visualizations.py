@@ -5,7 +5,8 @@ import datetime
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
-from scipy.stats import shapiro, linregress
+from scipy.stats import shapiro#, linregress
+from sklearn import linregress
 from data_management import remove_x
 
 def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
@@ -130,7 +131,23 @@ dvars2 = [[d15_var_r1, d30_var_r1, dbin_var_r1],
                [d15_var_r3, d30_var_r3, dbin_var_r3],
                [d15_var_r4, d30_var_r4, dbin_var_r4]]
 """
-
+# ---random neurons used for july 21st predictions (useful for mean_scatter_4x4_regression())---#
+# region 1
+r1_randoms = [2322, 3279, 4060, 1756,  146, 4441, 3978, 2034, 5025, 3515, 3534,
+       2167, 2310, 1837, 3864, 2529, 4127, 2325, 4791,  314, 3371, 1857,
+       1095, 1917, 3097, 1722, 4344, 3627, 3930, 3459]
+# region 2
+r2_randoms = [958, 907, 514, 432, 594, 385, 184, 368, 525, 351, 302, 551, 550,
+       575, 375, 719, 242, 613, 789, 872, 340, 402, 397, 643, 255, 928,
+       471, 894, 281, 523]
+# region 3
+r3_randoms = [279, 337, 208, 128,  46, 115, 248, 197,  52, 269,  37, 364, 340,
+       203,  36, 153,  84, 278,  71, 115,  24,  78, 138,  38,  22,  17,
+        89, 349, 178, 332]
+# region 4
+r4_randoms = [376, 295, 517,  25, 663, 429, 427, 651, 133, 500, 689, 266, 470,
+       424,  90, 560, 290, 198, 149, 181, 749, 461, 658, 771, 367, 758,
+       125, 195, 191,   8]
 
 
 def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,   normalized: bool, # first plot in presentation results

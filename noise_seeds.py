@@ -1,5 +1,6 @@
 from data_management import get_neuron_units
 import numpy as np
+from PIL import Image
 
 def generate_noise(noise_type: str, num_frames: int, sigma: int, mean = 0) -> np.array: # mean always equal to 0
     """
@@ -119,4 +120,3 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
     # store result as array in directory
     # delete previous result from memory, re run
     return noise_results
-
