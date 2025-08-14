@@ -23,7 +23,6 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
     if train_dir: path_imagenet = f'{path_imagenet}//train'
     else: path_imagenet = f'{path_imagenet}//val'
 
-    # Initialize return_stack with correct shape for grayscale images
     return_stack = np.zeros((n, 144, 256), dtype=np.uint8)
     
     # Initialize DataFrame for metadata
@@ -35,7 +34,6 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
     # Collect all image paths with their folder and image indices
     all_image_paths = []
     folder_indices = {}
-    image_indices = {}
     
     for folder_i, folder in enumerate(os.listdir(path_imagenet)):
         folder_path = os.path.join(path_imagenet, folder)
