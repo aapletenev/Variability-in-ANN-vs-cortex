@@ -102,7 +102,7 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
 # Example usage
 path_imagenet_josh = 'C://Users//joshf//downloads//imagenet-mini'
 
-josh_n = 1000  # Number of random images to process
+josh_n = 100  # Number of random images to process
 images, metadata = load_random_images(path_imagenet = path_imagenet_josh, n = josh_n, train_dir = True, save_images = True)
 print(metadata.head())
 
