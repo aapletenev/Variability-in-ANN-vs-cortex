@@ -9,7 +9,7 @@ def remove_x(arr, remove: str, k_percent: int):
     arr: 
         object to remove x% from
     remove: str
-        for now only top used, removes top k % if top otherwise bottom k %
+        for now only top used, removes top k % if "top" otherwise bottom k % 
     k_percent: int
         k % to take off top/bottom %
 

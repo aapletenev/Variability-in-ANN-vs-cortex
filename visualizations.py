@@ -333,8 +333,9 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
 
             std_err = linregress_result.stderr * np.sqrt(1/len(x) + (x_fit - np.mean(x))**2 / np.sum((x - np.mean(x))**2))
             if remove_x_str is not None and x_percent is not None:                  
-                y, _ = remove_x(y, remove_x_str, x_percent)
-                x = x[_]
+                remove = remove_x(y, remove_x_str, x_percent).astype(int)
+                x = x[remove]
+                y = y[remove]
                 ax.set_ylim(0, np.max(y))
                 ax.set_xlim(0,  np.max(x))
             cmap = plt.get_cmap('plasma')
