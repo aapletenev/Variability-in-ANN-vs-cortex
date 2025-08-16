@@ -342,31 +342,35 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
             x = means[i][j]
             y = vars[i][j]
 
-            x = x.flatten()
+            x = x.flatten().reshape(-1,1)
             y = y.flatten()
 
             linregress_result = LinearRegression(fit_intercept = False).fit(x, y)
             x_fit = np.linspace(np.min(x), np.max(x), len(x))
             y_fit = linregress_result.coef_[0] * x_fit
 
-            std_err = linregress_result.stderr * np.sqrt(1/len(x) + (x_fit - np.mean(x))**2 / np.sum((x - np.mean(x))**2))
             if remove_x_str is not None and x_percent is not None:                  
-                remove = remove_x(y, remove_x_str, x_percent).astype(int)
-                x = x[remove]
-                y = y[remove]
+                _, indices = remove_x(y, remove_x_str, x_percent)
+                x = x[indices]
+                y = y[indices]
                 ax.set_ylim(0, np.max(y))
                 ax.set_xlim(0,  np.max(x))
             cmap = plt.get_cmap('plasma')
-            colors = cmap(np.linspace(0, .95, len(x)))         
+            colors = cmap(np.linspace(0, .7, len(x)))         
             
-            ax.scatter(x, y, marker='.', color = colors, alpha = 0.7)
+            # ensure neuron data is same color
+            group_size = 5
+            num_groups = int(np.ceil(len(x) / group_size))
+            colors = cmap(np.linspace(0, 0.85, num_groups))
+            neuron_color = np.repeat(colors, group_size, axis=0)[:len(x)]
+
+            ax.scatter(x, y, marker='.', color = neuron_color, alpha = 0.7)
             ax.plot(x_fit, y_fit, 'r--', label='Regression line', linewidth=2)           
             
-            ax.fill_between(x_fit, y_fit - 1.96 * std_err, y_fit + 1.96 * std_err, color = 'blue', alpha = 1)
-
-            confidence_interval = f'[{linregress_result.slope - 1.96*linregress_result.stderr:.3f}, {linregress_result.slope + 1.96*linregress_result.stderr:.3f}]'
-            ax.text(0, 1, f'Slope: {linregress_result.slope:.3f}\nCI: {confidence_interval}\nR-Squared: {linregress_result.rvalue**2:.3f}',
-                    fontsize = '6', ha = 'left',  va = 'top', transform=ax.transAxes)
+            #---getting rid of CI for now, was not visible on presentation plot---#
+            #confidence_interval = f'[{linregress_result.coef_[0] - 1.96*linregress_result.stderr:.3f}, {linregress_result.coef_[0] + 1.96*linregress_result.stderr:.3f}]'
+            #ax.text(0, 1, f'Slope: {linregress_result.coef_[0]:.3f}\nCI: {confidence_interval}\nR-Squared: {linregress_result.rvalue**2:.3f}',
+            #        fontsize = '6', ha = 'left',  va = 'top', transform=ax.transAxes)
 
             ax.grid(True)
 
@@ -693,4 +697,4 @@ cscatter_vars = [[c3_var_r1, c15_var_r1, c30_var_r1, cbin_var_r1],
                [c3_var_r2, c15_var_r2, c30_var_r2, cbin_var_r2],
                [c3_var_r3, c15_var_r3, c30_var_r3, cbin_var_r3],
                [c3_var_r4, c15_var_r4, c30_var_r4, cbin_var_r4]]
-mean_var_scatter_4x4_regression(cscatter_means, cscatter_vars, random_neurons_region[:10], 'Test Plot')
+mean_var_scatter_4x4(cscatter_means, cscatter_vars, 'Test Plot', False, 'top', 1)
