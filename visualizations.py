@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 import os
-import datetime
+from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
-from scipy.stats import shapiro
+from scipy.stats import shapiro, linregress
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from processing import remove_x
@@ -212,7 +212,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
         dynamic_mean_plot = np.mean(dynamic_means_y, axis=0)
         slope_dyn, intercept_dyn, _, _, std_err_dyn = linregress(sigmas, dynamic_mean_plot)
         y_pred_dyn = intercept_dyn + slope_dyn * sigmas
-        ax_dyn.plot(sigmas, y_pred_dyn, 'r--', label='Regression line', linewidth=1)
+        ax_dyn.plot(sigmas, y_pred_dyn, 'r--', label='Regression line', linewidth=2)
         dyn_se = std_err_dyn * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
         ax_dyn.fill_between(sigmas, y_pred_dyn - 1.96*dyn_se, y_pred_dyn + 1.96*dyn_se, color='blue', alpha=1)
         
@@ -237,7 +237,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
         constant_mean_plot = np.mean(constant_means_y, axis=0)
         linregress_con = linregress(sigmas, constant_mean_plot) # changing to linregress object here
         y_pred_con = linregress_con.intercept + linregress_con.slope * sigmas
-        ax_con.plot(sigmas, y_pred_con, 'r--', label='Regression line', linewidth=1)
+        ax_con.plot(sigmas, y_pred_con, 'r--', label='Regression line', linewidth=2)
         con_se = linregress_con.stderr * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
         ax_con.fill_between(sigmas, y_pred_con - 1.96*con_se, y_pred_con + 1.96*con_se, color='blue', alpha=1)
         
@@ -672,34 +672,3 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
     else:
         plt.show()
 
-
-# example usage
-
-# in real code we now labels_lst from np.unique() on region label output from predictions
-labels_lst = [1,2,3,4]
-
-string_path = 'fnn//input_noise//saved_inputs_outputs//predictions_july21//' # ex. path to predictions used from july
-
-for noise in ['c3', 'c15', 'c30', 'd3', 'd15', 'd30', 'dbin', 'cbin', 'no_noise']:
-    for type_noise in ['_sum', '_mean', '_var', '_labels']:
-        file_name = string_path + noise + type_noise + '.npy'
-        arr_name = noise + type_noise
-        globals()[arr_name] = np.load(file_name)
-
-# load predictions by region
-for r in labels_lst:
-    for noise in ['c3', 'c15', 'c30', 'd3', 'd15', 'd30', 'dbin', 'cbin', 'no_noise']:
-        for type_noise in ['_sum', '_mean', '_var']:
-            file_name = string_path + noise + type_noise + '_r' + str(r) + '.npy'
-            arr_name = noise + type_noise + '_r' + str(r)
-            globals()[arr_name] = np.load(file_name)
-cscatter_means = [[c3_mean_r1, c15_mean_r1, c30_mean_r1, cbin_mean_r1],
-                 [c3_mean_r2, c15_mean_r2, c30_mean_r2, cbin_mean_r2],
-                 [c3_mean_r3, c15_mean_r3, c30_mean_r3, cbin_mean_r3],
-                 [c3_mean_r4, c15_mean_r4, c30_mean_r4, cbin_mean_r4]]
-
-cscatter_vars = [[c3_var_r1, c15_var_r1, c30_var_r1, cbin_var_r1],
-               [c3_var_r2, c15_var_r2, c30_var_r2, cbin_var_r2],
-               [c3_var_r3, c15_var_r3, c30_var_r3, cbin_var_r3],
-               [c3_var_r4, c15_var_r4, c30_var_r4, cbin_var_r4]]
-mean_var_scatter_4x4(cscatter_means, cscatter_vars, 'Test Plot', False, 'top', 1)
