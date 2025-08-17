@@ -7,6 +7,7 @@ import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
 from scipy.stats import shapiro
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 from processing import remove_x
 
 def plot_select30_hist(array, title, neurons, color = 'b'): # plots histogram for first image in stack object, specified neurons
@@ -147,7 +148,7 @@ r3_randoms = [279, 337, 208, 128,  46, 115, 248, 197,  52, 269,  37, 364, 340,
 # region 4
 r4_randoms = [376, 295, 517,  25, 663, 429, 427, 651, 133, 500, 689, 266, 470,
        424,  90, 560, 290, 198, 149, 181, 749, 461, 658, 771, 367, 758,
-       125, 195, 191,   8]
+       125, 195, 191, 8]
 
 random_neurons_region = [r1_randoms, r2_randoms, r3_randoms, r4_randoms]
 
@@ -336,7 +337,6 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
     
     for i in range(4):
         for j in range(4):
-            idx = i * 4 + j
             ax = axes[i, j] # first iterate j through different sigmas
             
             x = means[i][j]
@@ -345,14 +345,17 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
             x = x.flatten().reshape(-1,1)
             y = y.flatten()
 
-            linregress_result = LinearRegression(fit_intercept = False).fit(x, y)
+            linregress_result = LinearRegression(fit_intercept = True).fit(x, y)
             x_fit = np.linspace(np.min(x), np.max(x), len(x))
-            y_fit = linregress_result.coef_[0] * x_fit
+            y_fit = linregress_result.predict(x.reshape(-1,1))
+            
+            r_squared = r2_score(y_true = y, y_pred = y_fit, force_finite = False) # calculate r squared here before removing values
 
             if remove_x_str is not None and x_percent is not None:                  
                 _, indices = remove_x(y, remove_x_str, x_percent)
                 x = x[indices]
                 y = y[indices]
+                y_fit = y_fit[indices]
                 ax.set_ylim(0, np.max(y))
                 ax.set_xlim(0,  np.max(x))
             cmap = plt.get_cmap('plasma')
@@ -365,12 +368,14 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
             neuron_color = np.repeat(colors, group_size, axis=0)[:len(x)]
 
             ax.scatter(x, y, marker='.', color = neuron_color, alpha = 0.7)
-            ax.plot(x_fit, y_fit, 'r--', label='Regression line', linewidth=2)           
+            ax.plot(x, y_fit, 'red', label='Regression line', linewidth=2)           
             
-            #---getting rid of CI for now, was not visible on presentation plot---#
-            #confidence_interval = f'[{linregress_result.coef_[0] - 1.96*linregress_result.stderr:.3f}, {linregress_result.coef_[0] + 1.96*linregress_result.stderr:.3f}]'
-            #ax.text(0, 1, f'Slope: {linregress_result.coef_[0]:.3f}\nCI: {confidence_interval}\nR-Squared: {linregress_result.rvalue**2:.3f}',
-            #        fontsize = '6', ha = 'left',  va = 'top', transform=ax.transAxes)
+            #CI#
+            lower_bound_ci = round(linregress_result.coef_[0] - 1.96 * np.std(y) / len(y), 3)
+            upper_bound_ci = round(linregress_result.coef_[0] + 1.96 * np.std(y) / len(y), 3)
+            
+            ax.text(0, 1, f'Slope: {linregress_result.coef_[0]:.3f}\nCI: [{lower_bound_ci}, {upper_bound_ci}]\nR-Squared: {r_squared:.3f}',
+                    fontsize = '6', ha = 'left',  va = 'top', transform=ax.transAxes)
 
             ax.grid(True)
 
