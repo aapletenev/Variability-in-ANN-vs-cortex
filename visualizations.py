@@ -212,6 +212,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
 
         dynamic_mean_plot = np.mean(dynamic_means_y, axis=0)
 
+        """
         slope_dyn, intercept_dyn, _, _, std_err_dyn = linregress(sigmas, dynamic_mean_plot)
         y_pred_dyn = intercept_dyn + slope_dyn * sigmas
         ax_dyn.plot(sigmas, y_pred_dyn, 'r--', label='Regression line', linewidth=2)
@@ -220,6 +221,16 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
         
         ci_dyn = f'[{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]'
         ax_dyn.text(0.05, 0.85, f'Slope: {slope_dyn:.3f}\nCI: {ci_dyn}', transform=ax_dyn.transAxes, ha='left', va='top')
+        """
+        linregress_dyn = LinearRegression(fit_intercept = False).fit(sigmas_reshaped, dynamic_mean_plot)
+        y_pred_dyn = linregress_dyn.predict(sigmas_reshaped)
+        dyn_se = np.std(y_pred_dyn) / np.sqrt(len(y_pred_dyn))
+        ax_dyn.plot(sigmas, y_pred_dyn, 'r--', label='Regression line', linewidth=2)
+        ax_dyn.fill_between(sigmas, y_pred_dyn - 1.96*dyn_se, y_pred_dyn + 1.96*dyn_se, color='blue', alpha=.5, label = '95% CI')
+        
+        ci_dyn = f'[{linregress_dyn.coef_[0] - 1.96 * dyn_se:.3f}, {linregress_dyn.coef_[0] + 1.96 * dyn_se:.3f}]'
+        ax_dyn.text(0.05, 0.85, f'Slope: {linregress_dyn.coef_[0]:.3f}\nCI: {ci_dyn}', transform=ax_dyn.transAxes, ha='left', va='top')
+        
         if normalized: ax_dyn.axhline(y=1, color='black', linestyle='-', linewidth=1)
         
         ax_dyn.set_ylabel(f'Dynamic Noise' + 
