@@ -193,6 +193,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
     sigmas = np.array(sigmas)
     num_neurons = len(neurons)
     colors = plt.cm.tab20(np.linspace(0, 1, num_neurons))
+    sigmas_reshaped = sigmas.reshape(-1,1)
 
     for region in range(len(constant_array)):
         ax_dyn = axes[0, region]
@@ -210,6 +211,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
             ax_dyn.plot(sigmas, dynamic_y, marker='o', linestyle='-', alpha=0.5, color=colors[neuron])
 
         dynamic_mean_plot = np.mean(dynamic_means_y, axis=0)
+
         slope_dyn, intercept_dyn, _, _, std_err_dyn = linregress(sigmas, dynamic_mean_plot)
         y_pred_dyn = intercept_dyn + slope_dyn * sigmas
         ax_dyn.plot(sigmas, y_pred_dyn, 'r--', label='Regression line', linewidth=2)
@@ -233,16 +235,17 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
                 constant_y = constant_y / constant_data[0][neuron]
             constant_means_y[neuron] = constant_y
             ax_con.plot(sigmas, constant_y, marker='o', linestyle='-', alpha=0.5, color=colors[neuron])
-
+    
         constant_mean_plot = np.mean(constant_means_y, axis=0)
-        linregress_con = linregress(sigmas, constant_mean_plot) # changing to linregress object here
-        y_pred_con = linregress_con.intercept + linregress_con.slope * sigmas
-        ax_con.plot(sigmas, y_pred_con, 'r--', label='Regression line', linewidth=2)
-        con_se = linregress_con.stderr * np.sqrt(1/len(sigmas) + (sigmas - np.mean(sigmas))**2 / np.sum((sigmas - np.mean(sigmas))**2))
-        ax_con.fill_between(sigmas, y_pred_con - 1.96*con_se, y_pred_con + 1.96*con_se, color='blue', alpha=1)
         
-        ci_con = f'[{linregress_con.slope - 1.96 * linregress_con.stderr:.3f}, {linregress_con.slope + 1.96 * linregress_con.stderr:.3f}]'
-        ax_con.text(0.05, 0.85, f'Slope: {linregress_con.slope:.3f}\nCI: {ci_con}', transform=ax_con.transAxes, ha='left', va='top')
+        linregress_con = LinearRegression(fit_intercept = True).fit(sigmas_reshaped, constant_mean_plot)
+        y_pred_con = linregress_con.predict(sigmas_reshaped)
+        con_se = np.std(y_pred_con) / np.sqrt(len(y_pred_con))
+        ax_con.plot(sigmas, y_pred_con, 'r--', label='Regression line', linewidth=2)
+        ax_con.fill_between(sigmas, y_pred_con - 1.96*con_se, y_pred_con + 1.96*con_se, color='blue', alpha=.5, label = '95% CI')
+        
+        ci_con = f'[{linregress_con.coef_[0] - 1.96 * con_se:.3f}, {linregress_con.coef_[0] + 1.96 * con_se:.3f}]'
+        ax_con.text(0.05, 0.85, f'Slope: {linregress_con.coef_[0]:.3f}\nCI: {ci_con}', transform=ax_con.transAxes, ha='left', va='top')
         if normalized: ax_con.axhline(y=1, color='black', linestyle='-', linewidth=1)
 
         ax_con.set_ylabel(f'Constant Noise' + 
@@ -371,8 +374,8 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
             ax.plot(x, y_fit, 'red', label='Regression line', linewidth=2)           
             
             #CI#
-            lower_bound_ci = round(linregress_result.coef_[0] - 1.96 * np.std(y) / len(y), 3)
-            upper_bound_ci = round(linregress_result.coef_[0] + 1.96 * np.std(y) / len(y), 3)
+            lower_bound_ci = round(linregress_result.coef_[0] - 1.96 * np.std(y) / np.sqrt(len(y)), 3)
+            upper_bound_ci = round(linregress_result.coef_[0] + 1.96 * np.std(y) / np.sqrt(len(y)), 3)
             
             ax.text(0, 1, f'Slope: {linregress_result.coef_[0]:.3f}\nCI: [{lower_bound_ci}, {upper_bound_ci}]\nR-Squared: {r_squared:.3f}',
                     fontsize = '6', ha = 'left',  va = 'top', transform=ax.transAxes)
@@ -440,19 +443,16 @@ def mean_var_scatter_4x4_regression(means, vars, neurons, main_title: str, savef
                 y_neuron = y[:, neuron]
                 
                 cmap = plt.get_cmap('plasma')
-
                 color_i = neuron_arr.index(neuron) / (len(neuron_arr) - 1)
                 colors = cmap(color_i)
                                
                 ax.scatter(x_neuron, y_neuron, marker='.', color = colors, alpha = 0.4)
-
                 linregress = LinearRegression(fit_intercept = False)
                 linregress_result = linregress.fit(x_neuron, y_neuron)
                 x_fit = np.linspace(np.min(x_neuron), np.max(x_neuron), len(x_neuron))
                 y_fit = linregress_result.coef_[0] * x_fit
 
                 ax.plot(x_fit, y_fit, color=colors, label='Regression line', linewidth=2)           
-                
                 ax.grid(True)
 
                 if i == 0: title_region = 'V1' 
@@ -461,7 +461,6 @@ def mean_var_scatter_4x4_regression(means, vars, neurons, main_title: str, savef
                 else: title_region = 'RL'
 
                 if j == 0: ax.set_ylabel(f'Variance in\nPredicted Spike Count', fontsize = 11)
-                
                 if i == 0: ax.set_title(f'({sigmas[j]})', fontsize = 10)
                 elif i == 3: ax.set_xlabel('Mean Predicted\nSpike Count', fontsize = 12)  
                 ax.axhline(y=0, linestyle = '--', color = 'black', linewidth = 0.7)
