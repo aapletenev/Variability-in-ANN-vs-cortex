@@ -5,7 +5,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
-from scipy.stats import shapiro, linregress
+from scipy.stats import shapiro
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from processing import remove_x
@@ -249,7 +249,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
     
         constant_mean_plot = np.mean(constant_means_y, axis=0)
         
-        linregress_con = LinearRegression(fit_intercept = True).fit(sigmas_reshaped, constant_mean_plot)
+        linregress_con = LinearRegression(fit_intercept = False).fit(sigmas_reshaped, constant_mean_plot)
         y_pred_con = linregress_con.predict(sigmas_reshaped)
         con_se = np.std(y_pred_con) / np.sqrt(len(y_pred_con))
         ax_con.plot(sigmas, y_pred_con, 'r--', label='Regression line', linewidth=2)
@@ -359,7 +359,7 @@ def mean_var_scatter_4x4(means, vars, main_title: str, savefig: bool = False, re
             x = x.flatten().reshape(-1,1)
             y = y.flatten()
 
-            linregress_result = LinearRegression(fit_intercept = True).fit(x, y)
+            linregress_result = LinearRegression(fit_intercept = False).fit(x, y)
             x_fit = np.linspace(np.min(x), np.max(x), len(x))
             y_fit = linregress_result.predict(x.reshape(-1,1))
             
@@ -536,7 +536,7 @@ def violin_4row(means, vars, main_title: str, savefig: bool = False, remove_x_st
                 neuron_x = mean_arr[:, neuron].reshape(-1,1)
                 neuron_y = var_arr[:, neuron]
                 linregress_neuron = LinearRegression(fit_intercept = False).fit(neuron_x, neuron_y)
-                slope_temp.append(linregress_neuron.coef_)
+                slope_temp.append(linregress_neuron.coef_[0])
             slope_list.append(slope_temp)
         
         # method 1, remove x
@@ -571,9 +571,9 @@ def violin_4row(means, vars, main_title: str, savefig: bool = False, remove_x_st
         if i == 3: ax.set_xlabel('Sigma + Binarization')
         
         # method 2, set y_lim (adjusting differently for D and C plots)
-        if i == 0 or i == 1: ax.set_ylim(min([np.min(arr) for arr in slope_list]),.1 * max([np.max(arr) for arr in slope_list]))
-        elif i == 2: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list]), .2 * max([np.max(arr) for arr in slope_list]))
-        else: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list]), .4 * max([np.max(arr) for arr in slope_list]))
+        if i == 0 or i == 1: ax.set_ylim(min([np.min(arr) for arr in slope_list] + [-0.1]),.1 * max([np.max(arr) for arr in slope_list]))
+        elif i == 2: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list] + [0.1]), .2 * max([np.max(arr) for arr in slope_list]))
+        else: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list] + [-0.1]), .4 * max([np.max(arr) for arr in slope_list]))
         ax.axhline(y=0, linestyle = '--', color = 'black', linewidth = 0.7)
 
     
@@ -628,10 +628,10 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
         for mean_arr, var_arr in zip(region_x, region_y):
             slope_temp = []
             for neuron in range(mean_arr.shape[1]):
-                neuron_x = mean_arr[:, neuron]
+                neuron_x = mean_arr[:, neuron].reshape(-1,1)
                 neuron_y = var_arr[:, neuron]
-                linregress_neuron = linregress(neuron_x, neuron_y)
-                slope_temp.append(linregress_neuron.slope)
+                linregress_neuron = LinearRegression().fit(neuron_x, neuron_y)
+                slope_temp.append(linregress_neuron.coef_[0])
             slope_list.append(slope_temp)
         all_slope_lists.append(slope_list)
     
