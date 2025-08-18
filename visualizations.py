@@ -630,7 +630,7 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
             for neuron in range(mean_arr.shape[1]):
                 neuron_x = mean_arr[:, neuron].reshape(-1,1)
                 neuron_y = var_arr[:, neuron]
-                linregress_neuron = LinearRegression().fit(neuron_x, neuron_y)
+                linregress_neuron = LinearRegression(fit_intercept = False).fit(neuron_x, neuron_y)
                 slope_temp.append(linregress_neuron.coef_[0])
             slope_list.append(slope_temp)
         all_slope_lists.append(slope_list)
