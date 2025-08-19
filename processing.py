@@ -1,6 +1,5 @@
 import numpy as np
 
-# processing.py
 def remove_x(arr: list or np.array, remove: str, k_percent: int):
     """
     Parameters
@@ -34,7 +33,6 @@ def remove_x(arr: list or np.array, remove: str, k_percent: int):
         return arr[-n_keep:], indices[-n_keep]
     else: raise ValueError("Please enter 'top' or 'bottom' as an argument for remove.")
 
-# processing.py
 def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     """
     Parameters
