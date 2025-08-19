@@ -222,7 +222,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
         ci_dyn = f'[{slope_dyn - 1.96 * std_err_dyn:.3f}, {slope_dyn + 1.96 * std_err_dyn:.3f}]'
         ax_dyn.text(0.05, 0.85, f'Slope: {slope_dyn:.3f}\nCI: {ci_dyn}', transform=ax_dyn.transAxes, ha='left', va='top')
         """
-        linregress_dyn = LinearRegression(fit_intercept = False).fit(sigmas_reshaped, dynamic_mean_plot)
+        linregress_dyn = LinearRegression().fit(sigmas_reshaped, dynamic_mean_plot)
         y_pred_dyn = linregress_dyn.predict(sigmas_reshaped)
         dyn_se = np.std(y_pred_dyn) / np.sqrt(len(y_pred_dyn))
         ax_dyn.plot(sigmas, y_pred_dyn, 'r--', label='Regression line', linewidth=2)
@@ -249,7 +249,7 @@ def spike_plot_4x2(main_title: str, dynamic_array: list, constant_array: list,  
     
         constant_mean_plot = np.mean(constant_means_y, axis=0)
         
-        linregress_con = LinearRegression(fit_intercept = False).fit(sigmas_reshaped, constant_mean_plot)
+        linregress_con = LinearRegression().fit(sigmas_reshaped, constant_mean_plot)
         y_pred_con = linregress_con.predict(sigmas_reshaped)
         con_se = np.std(y_pred_con) / np.sqrt(len(y_pred_con))
         ax_con.plot(sigmas, y_pred_con, 'r--', label='Regression line', linewidth=2)
@@ -457,7 +457,7 @@ def mean_var_scatter_4x4_regression(means, vars, neurons, main_title: str, savef
                 color_i = neuron_arr.index(neuron) / (len(neuron_arr) - 1)
                 colors = cmap(color_i)
                                
-                ax.scatter(x_neuron, y_neuron, marker='.', color = colors, alpha = 0.4)
+                ax.scatter(x_neuron, y_neuron, marker='.', color = colors)
                 linregress = LinearRegression(fit_intercept = False)
                 linregress_result = linregress.fit(x_neuron, y_neuron)
                 x_fit = np.linspace(np.min(x_neuron), np.max(x_neuron), len(x_neuron))
@@ -573,7 +573,7 @@ def violin_4row(means, vars, main_title: str, savefig: bool = False, remove_x_st
         # method 2, set y_lim (adjusting differently for D and C plots)
         if i == 0 or i == 1: ax.set_ylim(min([np.min(arr) for arr in slope_list] + [-0.1]),.1 * max([np.max(arr) for arr in slope_list]))
         elif i == 2: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list] + [0.1]), .2 * max([np.max(arr) for arr in slope_list]))
-        else: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list] + [-0.1]), .4 * max([np.max(arr) for arr in slope_list]))
+        else: ax.set_ylim(1.5 * min([np.min(arr) for arr in slope_list] + [-0.01]), .4 * max([np.max(arr) for arr in slope_list]))
         ax.axhline(y=0, linestyle = '--', color = 'black', linewidth = 0.7)
 
     
