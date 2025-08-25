@@ -682,3 +682,79 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
     else:
         plt.show()
 
+def boxplots(means, vars, main_title: str, savefig: bool = False):
+    """
+    Parameters
+    ----------
+    means: list
+        list of mean arrays, must be 2d list
+    vars: list
+        list of varriance arrays, must be 2d list
+    main_title: str
+        main title for plot
+    savefig: bool
+        to save figure in current directory, defaults to False
+    
+    Returns
+    -------
+    plot
+        combined boxplot plot for each region and sigma/binarization with each region on one figure
+
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    regions = ['V1', 'LM', 'AL', 'RL']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'] 
+    
+    all_slope_lists = []
+    for i in range(len(means)):
+        region_x = means[i]
+        region_y = vars[i]
+        slope_list = []
+        
+        for mean_arr, var_arr in zip(region_x, region_y):
+            slope_temp = []
+            for neuron in range(mean_arr.shape[1]):
+                neuron_x = mean_arr[:, neuron].reshape(-1,1)
+                neuron_y = var_arr[:, neuron]
+                linregress_neuron = LinearRegression(fit_intercept = False).fit(neuron_x, neuron_y)
+                slope_temp.append(linregress_neuron.coef_[0])
+            slope_list.append(slope_temp)
+        all_slope_lists.append(slope_list)
+    
+    num_conditions = len(all_slope_lists[0])
+    violin_data = []
+    positions = []
+    violin_colors = []
+    for cond in range(num_conditions):
+        for region_idx in range(len(regions)):
+            violin_data.append(all_slope_lists[region_idx][cond])
+            base_pos = cond + 1  
+            offset = (region_idx - (len(regions) - 1) / 2) * 0.2 
+            positions.append(base_pos + offset)
+            violin_colors.append(colors[region_idx])
+    
+    plot = ax.boxplot(x = violin_data, positions=positions, showmeans=True, showfliers = False, widths = 0.25)
+    
+    ax.set_xticks(range(1, num_conditions + 1))
+    ax.set_xticklabels(['3', '15', '30', 'Stochastic\nBinarization'])
+    ax.set_xlabel('Sigma + Binarization', fontsize=10)
+    
+    ax.set_ylabel('Regression Slope', fontsize=10)
+    
+    legend_elements = [plt.Line2D([0], [0], color=colors[i], lw=4, label=regions[i]) for i in range(len(regions))]
+    ax.legend(handles=legend_elements, title='Regions', loc='upper right')
+    
+    ax.set_title(main_title, fontsize=12, fontweight='bold', pad=10)
+    ax.axhline(y=0, linestyle = '--', color = 'black', linewidth = 0.7)
+
+    #plt.ylim(.75 * min([np.min(x) for x in violin_data]), y_limit) # for reference max is a little under 10 here
+    plt.tight_layout()
+    
+    if savefig:
+        date = datetime.now()
+        file_date = f'({date.year}-{date.month}-{date.day})'
+        path_name = f'{main_title}_{file_date}.pdf'
+        plt.savefig(os.path.join(os.getcwd(), 'plots', path_name))
+    else:
+        plt.show()
