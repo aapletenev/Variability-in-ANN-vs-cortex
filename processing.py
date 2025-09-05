@@ -49,5 +49,5 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     array
         filtered array where brain region is equal to region_input
     """
-    mask=label_mapping==region_input
-    return array[..., np.squeeze(mask)]
+    filtered = [array[i][label_mapping[i] == region_input] for i in range(array.shape[0])]
+    return np.stack(filtered, axis=0)
