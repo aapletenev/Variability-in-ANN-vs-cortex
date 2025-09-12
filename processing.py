@@ -51,3 +51,47 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     """
     filtered = [array[i][label_mapping[i] == region_input] for i in range(array.shape[0])]
     return np.stack(filtered, axis=0)
+
+def sort_avg_arr(arr, ascending: bool = True, axis = 1):
+    """
+    sort multiple rows based on average value for each
+
+    parameters
+    ----------
+    arr: np.ndarray
+        array to sort
+    ascending: bool
+        whether to sort ascending or not
+    axis: int
+        axis to sort on, defaults to 1 for 2d array
+    
+    returns
+    -------
+    list
+        list of indices to sort array
+    """
+
+    arr_averaged = np.nanmean(arr, axis = axis)
+    if ascending: return np.argsort(arr_averaged)
+    else: return np.argsort(arr_averaged)[::-1]
+
+
+def sort_within_arr(arr, ascending = True):
+    """
+    sort row of data within array
+    
+    parameters
+    ----------
+    arr: np.ndarray
+        array to sort
+    ascending: bool
+        whether to sort ascending or not
+    axis: 
+        defaults to -1 since input will likely be row of data
+    returns
+    -------
+    list
+        list of indices to sort row of data
+    """
+    if ascending: return np.argsort(arr)
+    else: return np.argsort(arr)[::-1]

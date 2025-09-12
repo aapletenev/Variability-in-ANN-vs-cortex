@@ -758,3 +758,37 @@ def boxplots(means, vars, main_title: str, savefig: bool = False):
         plt.savefig(os.path.join(os.getcwd(), 'plots', path_name))
     else:
         plt.show()
+
+def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False):
+    """
+    ADD DOCS
+    """
+    fig, axes = plt.subplots(4, 4, figsize=(10, 8), sharex=False, sharey=False)
+    fig.text(0.5, 1.02, main_title, ha='center', va='top', fontsize=14, fontweight = 'bold', bbox=dict(facecolor='white'))
+
+    for id, neuron in enumerate(neurons):
+        i, j = divmod(id, 4)
+        ax = axes[i, j]
+        ax.text(0.01, 0.99, f'neuron: {neuron}', verticalalignment = 'top', horizontalalignment = 'left', 
+                transform = ax.transAxes)
+        ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'gray')
+        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], alpha = 0.5, marker = '^')
+        ax.plot(mean_masked[..., neuron], var_masked[..., neuron], color = 'red', alpha = 0.1)
+
+        if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
+        if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
+    plt.tight_layout()
+    if savefig: 
+        try:
+            date = datetime.now()
+            file_date = f'({str(date.month)}-{str(date.day)}-{str(date.year)})'
+            path_name = f'{main_title}_{file_date}.pdf'
+            plt.savefig(os.path.join(os.getcwd(), f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', path_name), 
+                        bbox_inches = 'tight', pad_inches = 0.3)
+        except FileNotFoundError:
+            os.makedirs(f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', exist_ok = True)
+            plt.savefig(os.path.join(os.getcwd(), f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', path_name),
+                        bbox_inches = 'tight', pad_inches = 0.3)
+            plt.close()
+    else: 
+        plt.show()
