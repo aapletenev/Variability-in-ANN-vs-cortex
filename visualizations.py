@@ -759,6 +759,25 @@ def boxplots(means, vars, main_title: str, savefig: bool = False):
     else:
         plt.show()
 
+def smooth_func(x, m, b): # used for regression in lineplots_4x4
+
+    """    
+    Parameters
+    ----------
+    x : float or np.ndarray
+        Input value(s) along the x-axis
+    m : float
+        Scaling parameter
+    b : float
+        Growth rate parameter
+    
+    Returns
+    -------
+    float or np.ndarray
+        Function value(s) f(x)
+    """
+    return (m / b) * (np.log1p(np.exp(b * x)) - np.log(2) - (b * x) / 2)
+
 def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False):
     """
     ADD DOCS
@@ -771,12 +790,13 @@ def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False)
         ax = axes[i, j]
         ax.text(0.01, 0.99, f'neuron: {neuron}', verticalalignment = 'top', horizontalalignment = 'left', 
                 transform = ax.transAxes)
-        ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'gray')
-        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], alpha = 0.5, marker = '^')
-        ax.plot(mean_masked[..., neuron], var_masked[..., neuron], color = 'red', alpha = 0.1)
+        ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'gray', marker = '.')
+        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'b', alpha = 0.3, marker = '.')
+        ax.plot(mean_masked[..., neuron], var_masked[..., neuron], color = 'b', alpha = 0.1)
 
         if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
         if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
+
     plt.tight_layout()
     if savefig: 
         try:
