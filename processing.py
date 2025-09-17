@@ -52,6 +52,13 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     filtered = [array[i][label_mapping[i] == region_input] for i in range(array.shape[0])]
     return np.stack(filtered, axis=0)
 
+def remove_value(arr, desired_rate, thresh, fill_value):
+    """
+    make function that removes values that exceed a specified rate
+    ie 200 spikes/second
+    """
+    return
+
 def sort_avg_arr(arr, ascending: bool = True, axis = 1):
     """
     sort multiple rows based on average value for each
@@ -75,19 +82,17 @@ def sort_avg_arr(arr, ascending: bool = True, axis = 1):
     if ascending: return np.argsort(arr_averaged)
     else: return np.argsort(arr_averaged)[::-1]
 
-
 def sort_within_arr(arr, ascending = True):
     """
     sort row of data within array
-    
+
     parameters
     ----------
     arr: np.ndarray
         array to sort
     ascending: bool
         whether to sort ascending or not
-    axis: 
-        defaults to -1 since input will likely be row of data
+    
     returns
     -------
     list
