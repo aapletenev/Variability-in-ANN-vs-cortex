@@ -52,12 +52,34 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     filtered = [array[i][label_mapping[i] == region_input] for i in range(array.shape[0])]
     return np.stack(filtered, axis=0)
 
-def remove_value(arr, desired_rate, thresh, fill_value):
+def remove_rate(arr, spikes: int, frames: int = 15, seconds: int = 1, fill_value = np.nan):
     """
-    make function that removes values that exceed a specified rate
-    ie 200 spikes/second
+    remove values that exceed a specified rate, default replace with np.nan
+    ie anything above 200 spikes/second becomes nan
+    note: 30 frames is one second, function will default to x spikes per second (30 frames)
+    
+    Parameters
+    ----------
+    arr: np.array
+        array to filter
+    spikes: int
+        total number of spikes within rate to filter
+    frames: int
+        frames to filter based off of, defaults to 15 as that is what was used for our predictions
+    seconds: int
+        seconds to filter based off of for rate threshold
+    fill_value: int, double or np.nan
+        what to fill new array with, double int or nan will suffice, defaults to nan
+    
+    Returns
+    -------
+    arr
+        array where any value within arr that EXCEEDS the specified rate is changed to fill_value
+
     """
-    return
+    rate_per_frame = (spikes / seconds) * (1 / 30)
+    frame_thresh = rate_per_frame * frames
+    return np.where(arr > frame_thresh, fill_value, arr)
 
 def sort_avg_arr(arr, ascending: bool = True, axis = 1):
     """
