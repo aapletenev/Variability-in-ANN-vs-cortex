@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
 from scipy.stats import shapiro
+from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from processing import remove_x
@@ -794,6 +795,16 @@ def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False)
         ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'b', alpha = 0.3, marker = '.')
         ax.plot(mean_masked[..., neuron], var_masked[..., neuron], color = 'b', alpha = 0.1)
 
+        # regression
+        mask = ~np.isnan(mean_masked[..., neuron])
+        x_nonan = mean_masked[..., neuron][mask]
+        y_nonan = var_masked[..., neuron][mask]
+
+        params, covariance = curve_fit(smooth_func, x_nonan, y_nonan)
+        y_pred = smooth_func(np.linspace(0, np.max(x_nonan)), params[0], params[1])
+        ax.plot(np.linspace(0, np.max(x_nonan)), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
+        
+        
         if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
         if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
 

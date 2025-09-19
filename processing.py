@@ -81,7 +81,7 @@ def remove_rate(arr, spikes: int, frames: int = 15, seconds: int = 1, fill_value
     frame_thresh = rate_per_frame * frames
     return np.where(arr > frame_thresh, fill_value, arr)
 
-def sort_avg_arr(arr, ascending: bool = True, axis = 1):
+def sort_max_arr(arr, ascending: bool = True, axis = 1):
     """
     sort multiple rows based on average value for each
 
@@ -100,25 +100,7 @@ def sort_avg_arr(arr, ascending: bool = True, axis = 1):
         list of indices to sort array
     """
 
-    arr_averaged = np.nanmean(arr, axis = axis)
+    arr_averaged = np.nanmax(arr, axis = axis)
     if ascending: return np.argsort(arr_averaged)
     else: return np.argsort(arr_averaged)[::-1]
-
-def sort_within_arr(arr, ascending = True):
-    """
-    sort row of data within array
-
-    parameters
-    ----------
-    arr: np.ndarray
-        array to sort
-    ascending: bool
-        whether to sort ascending or not
     
-    returns
-    -------
-    list
-        list of indices to sort row of data
-    """
-    if ascending: return np.argsort(arr)
-    else: return np.argsort(arr)[::-1]
