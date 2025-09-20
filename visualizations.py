@@ -784,15 +784,14 @@ def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False)
     ADD DOCS
     """
     fig, axes = plt.subplots(4, 4, figsize=(10, 8), sharex=False, sharey=False)
-    fig.text(0.5, 1.02, main_title, ha='center', va='top', fontsize=14, fontweight = 'bold', bbox=dict(facecolor='white'))
+    fig.text(0.5, 1.04, main_title, ha='center', va='top', fontsize=14, fontweight = 'bold', bbox=dict(facecolor='white'))
 
     for id, neuron in enumerate(neurons):
         i, j = divmod(id, 4)
         ax = axes[i, j]
-        ax.text(0.01, 0.99, f'neuron: {neuron}', verticalalignment = 'top', horizontalalignment = 'left', 
-                transform = ax.transAxes)
-        ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'gray', marker = '.')
-        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'b', alpha = 0.3, marker = '.')
+        
+        ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'black', alpha = 0.5, marker = '.', label = 'predicted response (gray frames)')
+        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'b', alpha = 0.3, marker = '.', label = 'predicted response (imagenet)')
         ax.plot(mean_masked[..., neuron], var_masked[..., neuron], color = 'b', alpha = 0.1)
 
         # regression
@@ -804,10 +803,13 @@ def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False)
         y_pred = smooth_func(np.linspace(0, np.max(x_nonan)), params[0], params[1])
         ax.plot(np.linspace(0, np.max(x_nonan)), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
         
-        
+        ax.text(0.01, 0.99, f'm: {params[0]:.3f}\nb: {params[1]:.3f}', verticalalignment = 'top', horizontalalignment = 'left', 
+                transform = ax.transAxes)
         if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
         if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
 
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.02, 1.08), ncol=1)    
     plt.tight_layout()
     if savefig: 
         try:
