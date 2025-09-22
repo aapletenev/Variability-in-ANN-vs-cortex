@@ -799,9 +799,9 @@ def lineplots_4x4(main_title, neurons, mean_masked, var_masked, savefig = False)
         x_nonan = mean_masked[..., neuron][mask]
         y_nonan = var_masked[..., neuron][mask]
 
-        params, covariance = curve_fit(smooth_func, x_nonan, y_nonan)
-        y_pred = smooth_func(np.linspace(0, np.max(x_nonan)), params[0], params[1])
-        ax.plot(np.linspace(0, np.max(x_nonan)), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
+        params, covariance = curve_fit(smooth_func, x_nonan, y_nonan, maxfev = 10000)
+        y_pred = smooth_func(np.linspace(0, np.max(x_nonan), 100), params[0], params[1]) # ensure i can use arbitrary 100 x's here
+        ax.plot(np.linspace(0, np.max(x_nonan), 100), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
         
         ax.text(0.01, 0.99, f'm: {params[0]:.3f}\nb: {params[1]:.3f}', verticalalignment = 'top', horizontalalignment = 'left', 
                 transform = ax.transAxes)
