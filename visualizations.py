@@ -779,7 +779,7 @@ def smooth_func(x, m, b): # used for regression in lineplots_4x4
     """
     return (m / b) * (np.log1p(np.exp(b * x)) - np.log(2) - (b * x) / 2)
 
-def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in range(16)], savefig = False):
+def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in range(16)], savefig = False, logspace = False):
     """
     Parameters
     ----------
@@ -813,7 +813,7 @@ def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in ran
         x_nonan = mean_masked[..., neuron][mask]
         y_nonan = var_masked[..., neuron][mask]
 
-        params, covariance = curve_fit(smooth_func, x_nonan, y_nonan, maxfev = 10000)
+        params, covariance = curve_fit(smooth_func, x_nonan, y_nonan, maxfev = 1_000_000, p0 = [1, .001])
         y_pred = smooth_func(np.linspace(0, np.max(x_nonan), 100), params[0], params[1])
         ax.plot(np.linspace(0, np.max(x_nonan), 100), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
         
@@ -822,8 +822,11 @@ def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in ran
         if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
         if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
 
-        ax.set_xlim(0, min(np.max(mean_masked)/3, 200)) # how to handle outliers
+        #ax.set_xlim(0, min(np.max(mean_masked)/3, 200)) # how to handle outliers
 
+        if logspace: 
+            ax.set_xscale('log')
+            ax.set_yscale('log')
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.02, 1.08), ncol=1)    
     plt.tight_layout()
