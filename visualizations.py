@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-import datetime
+from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
@@ -634,9 +634,17 @@ def violin_combined(means, vars, main_title: str, savefig: bool = False): # seco
     plt.tight_layout()
     
     if savefig:
-        date = datetime.now()
-        file_date = f'({date.year}-{date.month}-{date.day})'
-        path_name = f'{main_title}_{file_date}.pdf'
-        plt.savefig(os.path.join(os.getcwd(), 'plots', path_name))
+        try:
+            date = datetime.now()
+            file_date = f'({str(date.month)}-{str(date.day)}-{str(date.year)})'
+            path_name = f'{main_title}_{file_date}.pdf'
+            plt.savefig(os.path.join(os.getcwd(), f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', path_name), 
+                        bbox_inches = 'tight', pad_inches = 0.3)
+        except FileNotFoundError:
+            os.makedirs(f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', exist_ok = True)
+            plt.savefig(os.path.join(os.getcwd(), f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', path_name),
+                        bbox_inches = 'tight', pad_inches = 0.3)
+            plt.close()
     else:
-        plt.show()
+        plt.draw()
+        plt.pause(0.1)

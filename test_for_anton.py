@@ -2,7 +2,7 @@ import numpy as np
 from numpy import full
 from prediction import make_predictions
 from visualizations import line_plot_mean, spike_plot_4x2, sixteen_tuning_curves, mean_var_scatter_4x4,  mean_var_scatter_4x4_regression, violin_4row, violin_combined
-
+import os
 """
 File Description
 ----------------
@@ -15,7 +15,7 @@ Assumptions
 """
 
 # note that image input must have shape (x, 144, 256) where x is the number of frames 
-frames = full(shape = (5,144,256), fill_value = 128)
+frames = full(shape = (5,144,256), fill_value = 128) #this is the example of 5 frames
 
 a, b, c, d = make_predictions('dynamic', frames, 3, [[4,7]], noise_seeds = 2, num_frames = 3)
 
@@ -145,3 +145,4 @@ violin_4row(means = dmeans2, vars = dvars2, main_title = 'Dynamic Noise', savefi
 
 #### violin plot 2
 violin_combined(dmeans1, dvars1, 'Dynamic Noise', savefig = False)
+violin_combined(dmeans1, dvars1, 'Dynamic Noise', savefig = True)
