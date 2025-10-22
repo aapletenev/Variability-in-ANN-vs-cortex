@@ -80,15 +80,14 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
         metadata_df = pd.DataFrame(metadata_list)
     
     print(f"We wanted {n} random images and got return stack of shape {return_stack.shape}")
-    print(f"Metadata DataFrame shape: {metadata_df.shape}")
 
     if save_images: np.save(f'image_stack({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', return_stack)
-    return return_stack, metadata_df
+    return return_stack
 
 # ex
-path_imagenet_josh = 'C://Users//joshf//downloads//imagenet-mini'
+#path_imagenet_josh = 'C://Users//joshf//downloads//imagenet-mini'
 
-josh_n = 100 
-images, metadata = load_random_images(path_imagenet = path_imagenet_josh, n = josh_n, train_dir = True, save_images = True)
-print(metadata.head())
+#josh_n = 100 
+#images, metadata = load_random_images(path_imagenet = path_imagenet_josh, n = josh_n, train_dir = True, save_images = True)
+#print(metadata.head())
 
