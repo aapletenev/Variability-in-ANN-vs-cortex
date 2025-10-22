@@ -778,7 +778,7 @@ def smooth_func(x, m, b): # used for regression in lineplots_4x4
         Function value(s) f(x)
     """
     return (m / b) * (np.log1p(np.exp(b * x)) - np.log(2) - (b * x) / 2)
-
+#---change function here?---
 def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in range(16)], savefig = False, logspace = False):
     """
     Parameters
