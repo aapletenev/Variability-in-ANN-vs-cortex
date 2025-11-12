@@ -15,7 +15,7 @@ Assumptions
 from random_images import load_random_images
 images = load_random_images('imagenetmini/imagenet-mini', 10)
 
-a, b, c, d = make_predictions('dynamic', images, 3, [[4,7]], stochastic_bin_param = True, noise_seeds = 2, num_frames = 3)
+a, b, c, d = make_predictions('dynamic', images, 3, [[4,7]], stochastic_bin_param = False, noise_seeds = 2, num_frames = 3)
 print(a.shape)
 
 ##load the data

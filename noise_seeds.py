@@ -104,13 +104,12 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
             return prediction
 
         elif stochastic_bin_param == False:  # case: no stochastic bin. 
-        
+            
             new_noise = generate_noise(noise_type, num_frames, sigma)
             new_image = np.clip(np.round((image + new_noise)),  a_min = 0, a_max = 255).astype('uint8') # no need to clip values with this dtype
 
             for model, ids in zip(model_list, id_list):
                 prediction = model.predict(new_image)
-            
             return prediction
         else: raise ValueError ('---Enter "true" or "false" for stchastic_bin_param.---')
     
