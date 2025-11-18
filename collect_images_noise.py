@@ -16,7 +16,7 @@ get bernoulli noise
 """
 bernoulli_frames = stochastic_binarization(frames)
 
-
+print(sigma10_frames.shape)
 # mean var scatter plot and compute mean var
 plt.figure(figsize = (10, 6))
 # sigma10
