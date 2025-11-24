@@ -82,7 +82,7 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
     print(f"We wanted {n} random images and got return stack of shape {return_stack.shape}")
 
     if save_images: np.save(f'image_stack({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', return_stack)
-    return return_stack
+    return return_stack, metadata_df
 
 # ex
 #path_imagenet_josh = 'C://Users//joshf//downloads//imagenet-mini'
