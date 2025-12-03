@@ -77,8 +77,7 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
 
-    if return_noise: return_noise_list = np.empty((noise_seeds, num_frames, 144, 256))
-    def process_noise_seed(noise_type: str, image, return_noise) -> np.array:
+    def process_noise_seed(noise_type: str, image, return_noise, num_frames) -> np.array:
         """
         Parameters
         ----------
@@ -100,9 +99,10 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
                 return
             if return_noise: 
                 return new_image
-            for model, ids in zip(model_list, id_list):
-                prediction = model.predict(new_image)
-            return prediction
+            else:
+                for model, ids in zip(model_list, id_list):
+                    return model.predict(new_image)
+                 
 
         elif stochastic_bin_param == False:  # case: no stochastic bin. 
             
@@ -112,16 +112,15 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
             if return_noise: 
                 return new_image
             for model, ids in zip(model_list, id_list):
-                prediction = model.predict(new_image)
-            return prediction
+                return model.predict(new_image)
+            
         else: raise ValueError ('---Enter "true" or "false" for stchastic_bin_param.---')
-    
+    if return_noise: noise_array=[]
     for i in range(noise_seeds):
-        result = process_noise_seed(noise_type, image, return_noise=return_noise)
-        if return_noise: 
-            return_noise_list[i]=result
-        else:
-            noise_results[i] = result
+        result = process_noise_seed(noise_type, image, return_noise=return_noise, num_frames=num_frames)
+        if return_noise:
+            noise_array.append(result)
+        else: noise_results[i] = result
     # store result as array in directory
     # delete previous result from memory, re run
-    return return_noise_list if return_noise else noise_results
+    return noise_array if return_noise else noise_results
