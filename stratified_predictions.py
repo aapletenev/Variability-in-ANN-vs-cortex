@@ -80,8 +80,7 @@ for batch_idx, batch_folder in enumerate(selected_batches, start=start_batch):
         pred_arrs = make_predictions(
             'dynamic', image_batch, 3, [[4, 7]],
             stochastic_bin_param=False,
-            noise_seeds=2,
-            num_frames=image_batch.shape[0]
+            noise_seeds=2
         )
 
         # Save predictions atomically
