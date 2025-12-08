@@ -44,8 +44,8 @@ def stochastic_binarization(image_object: np.array) -> np.array:
     image = (prob_results * 255).astype('uint8')
     return image
 
-def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30) -> np.array:
-    num_neurons = get_neuron_units(scans)
+def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, image, sigma: int, scans, stochastic_bin_param: bool, num_frames: int = 30, return_noise=False) -> np.array:
+    if isinstance(scans, list): num_neurons = get_neuron_units(scans)
     noise_results = np.empty((noise_seeds, num_frames, num_neurons))
     """
     Parameters
@@ -66,6 +66,8 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
         should be 2d array with pairs of sessions and scan ids taken from scans.csv
     num_neurons: int
         total number of neurons from all scans, inputted from predict_loop()
+    return_noise: bool
+        return noise instances, defaults to height and width equal to 144 and 256
 
     Returns
     -------
@@ -75,19 +77,16 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
     ex. input predict_loop("constant", 100, image, 3, [[4,6], [5,7]])
     """
 
-    def process_noise_seed(noise_type: str, image) -> np.array:
+    def process_noise_seed(noise_type: str, image, return_noise, num_frames) -> np.array:
         """
         Parameters
         ----------
-        noise_seeds: int
-            noise seeds, same as entered into inner_predict_loop() to iterate for each noise seed
         
         Returns
         -------
         array
             concatenated object of all predictions for every scan and noise seed
         """
-        
         if stochastic_bin_param == True: 
             # constant stochastic binarization
             if noise_type == 'constant': new_image = np.clip(np.round(stochastic_binarization(image)), a_min = 0, a_max = 255).astype('uint8')
@@ -98,25 +97,30 @@ def noise_iterations(model_list, id_list, noise_type: str, noise_seeds: int, ima
             else:
                 print('Please specify the correct type of noise for stochastic binarization, either constant or dynamic')
                 return
-
-            for model, ids in zip(model_list, id_list):
-                prediction = model.predict(new_image)
-            return prediction
+            if return_noise: 
+                return new_image
+            else:
+                for model, ids in zip(model_list, id_list):
+                    return model.predict(new_image)
+                 
 
         elif stochastic_bin_param == False:  # case: no stochastic bin. 
-        
+            
             new_noise = generate_noise(noise_type, num_frames, sigma)
             new_image = np.clip(np.round((image + new_noise)),  a_min = 0, a_max = 255).astype('uint8') # no need to clip values with this dtype
 
+            if return_noise: 
+                return new_image
             for model, ids in zip(model_list, id_list):
-                prediction = model.predict(new_image)
+                return model.predict(new_image)
             
-            return prediction
         else: raise ValueError ('---Enter "true" or "false" for stchastic_bin_param.---')
-    
+    if return_noise: noise_array=[]
     for i in range(noise_seeds):
-        result = process_noise_seed(noise_type, image)
-        noise_results[i] = result
+        result = process_noise_seed(noise_type, image, return_noise=return_noise, num_frames=num_frames)
+        if return_noise:
+            noise_array.append(result)
+        else: noise_results[i] = result
     # store result as array in directory
     # delete previous result from memory, re run
-    return noise_results
+    return noise_array if return_noise else noise_results
