@@ -35,7 +35,7 @@ def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array: #
     results = pred_model.predict(stimuli = stimuli_noise)
     return results, ids   
 
-def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
+def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15, before_sum: bool = False):
     
     """
     Parameters
@@ -89,4 +89,6 @@ def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, sto
 
     num_neurons = get_neuron_units(scans)
     regions = [get_brain_region(mapping, num_neurons) for mapping in ids_list] # this is why output is in list
+    if before_sum:
+        return final_array, final_stack_sum, final_mean, final_var, regions
     return final_stack_sum, final_mean, final_var, regions

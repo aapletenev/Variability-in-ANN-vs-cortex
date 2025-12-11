@@ -2,182 +2,201 @@ import numpy as np
 import os
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('MacOSX')
+from scipy import stats
+from functions_Anton import *
+import matplotlib.ticker as ticker
+
+matplotlib.use('Agg')
+
+
+############Start#################################
 
 ##load the data
 wd = os.getcwd()
-string_path = '/predictions/8-27-2025/'
-#show all dirictories inside it
-dirs = os.listdir(wd + '/' + string_path)
+string_path = '/predictions/Anton/'
+path_out = wd + '/intermediate_results/correlations/'
+os.makedirs(path_out, exist_ok=True)
+CALCULATE_COR = False
+CALCULATE_GEOM_MEAN = False
 
-#Now load in the data
-#create empty npy arrays to  append data
-data = []
-data_mean = []
-labels = [] #this is the area labels
-for dir in dirs:
-    data.append(np.load(wd + '/' + string_path + dir + '/sum_arr_'+ dir + '.npy'))
-    data_mean.append(np.load(wd + '/' + string_path + dir + '/mean_arr_'+ dir + '.npy'))
-    labels.append(np.load(wd + '/' + string_path + dir + '/label_arr_'+ dir + '.npy'))
-
-data = np.concatenate(data, axis = 0)
-data_mean = np.concatenate(data_mean, axis = 0)
-labels = np.concatenate(labels, axis = 0)
 #data is now of shape (num_images, num_noise, num_neurons), labels is of shape (num_images, num_neurons), I need to select neurons with area == 1
-data_V1 = data[:,:,labels[0,:] == 1]
-data_mean_V1 = data_mean[:,labels[0,:] == 1]
+labels = np.load(wd + string_path + 'label/Bern.npy')
+Spike_Bern = get_neurons_of_area(np.load(wd + string_path + 'sum/Bern.npy'), labels)
+Mean_Bern = get_neurons_of_area(np.load(wd + string_path + 'mean/Bern.npy'), labels)
+Spike_Gaus = get_neurons_of_area(np.load(wd + string_path + 'sum/Gaus_10.npy'), labels)
+Mean_Gaus = get_neurons_of_area(np.load(wd + string_path + 'mean/Gaus_10.npy'), labels)
 
-#now calculate the correlation for data_V1 across noise levels, so output shape (num_images, num_neurons, num_neurons)
-correlations = []
-for i in range(data_V1.shape[0]):
-    corr_matrix = np.corrcoef(data_V1[i,:,:].T)
-    correlations.append(corr_matrix)
+#Now substitute all values > 100 to NaN
+Spike_Bern[Spike_Bern > 100] = np.nan
+Mean_Bern[Mean_Bern > 100] = np.nan
+Spike_Gaus[Spike_Gaus > 100] = np.nan
+Mean_Gaus[Mean_Gaus > 100] = np.nan
 
-correlations = np.array(correlations)
 
-#Now take 10 randon pairs and plot 10 subplots with histogram of the correlations across images
+##get all correlations
+cor_Bern, cor_z_Bern, signal_cor_Bern, cor_z_top_Bern, signal_cor_top_Bern, top_neurons_Bern = get_correlations_all(Spike_Bern, Mean_Bern)
+cor_Gaus, cor_z_Gaus, signal_cor_Gaus, cor_z_top_Gaus, signal_cor_top_Gaus, top_neurons_Gaus = get_correlations_all(Spike_Gaus, Mean_Gaus)
+
+    #save all correlations in wd + '/intermediate results/correlations', make a for loop for both types
+
+    # for suffix in ['Bern', 'Gaus']:
+    #     for p in ['cor', 'top_neurons']:
+    #         # locals() gets the variable safely by string name (e.g., "cor_Bern")
+    #         np.save(f"{path_out}{p}_{suffix}.npy", locals()[f"{p}_{suffix}"])
+
+
+####compute geometric mean of pairs of means
+# if CALCULATE_GEOM_MEAN:
+#     Geom_mean_Bern = geometric_mean_pairwise(Mean_Bern)
+#     Geom_mean_Gaus = geometric_mean_pairwise(Mean_Gaus)
+#
+#     ###save geometric means
+#     np.save(path_out + 'Geom_mean_Bern.npy', Geom_mean_Bern)
+#     np.save(path_out + 'Geom_mean_Gaus.npy', Geom_mean_Gaus)
+
+# #load top_neurons
+# top_neurons_Bern = np.load(path_out + 'top_neurons_Bern.npy')
+# top_neurons_Gaus = np.load(path_out + 'top_neurons_Gaus.npy')
+
+#load geometric means
+# Geom_mean_Bern = np.load(path_out + 'Geom_mean_Bern.npy')
+# Geom_mean_Gaus = np.load(path_out + 'Geom_mean_Gaus.npy')
+
+###get geometric mean of top neurons only
+Geom_mean_Bern_top = get_lower_triangle(geometric_mean_pairwise(Mean_Bern[:, top_neurons_Bern]))
+Geom_mean_Gaus_top = get_lower_triangle(geometric_mean_pairwise(Mean_Gaus[:, top_neurons_Gaus]))
+
+#load cor_Bern and cor_Gaus
+# cor_Bern = np.load(path_out + 'cor_Bern.npy')
+# cor_Gaus = np.load(path_out + 'cor_Gaus.npy')
+
+#compute cor_Bern_top and cor_Gaus_top
+cor_Bern_top = get_lower_triangle(compute_corr(Spike_Bern[:, :, top_neurons_Bern]))
+cor_Gaus_top = get_lower_triangle(compute_corr(Spike_Gaus[:, :, top_neurons_Gaus]))
+
+
+
+
+# Create the 3x3 plot
+fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(16, 12))
+plt.subplots_adjust(hspace=0.3, wspace=0.3)
+
+plot_hist_comparison(axes[0, 0], cor_z_Bern, cor_z_top_Bern, color='tab:orange', title="Bernoulli Noise")
+plot_hist_comparison(axes[0, 1], cor_z_Gaus, cor_z_top_Gaus, color='tab:blue', title="Gaussian Noise (σ=10)")
+
+
+plot_scatter_noise_vs_signal(axes[1, 0], cor_z_Bern, signal_cor_Bern, cor_z_top_Bern, signal_cor_top_Bern,
+    color='navajowhite', color_top='tab:orange', point_size=0.3, point_alpha=0.1, title="",  ylabel='Noise Correlation (z-scored responses)')
+
+plot_scatter_noise_vs_signal(axes[1, 1], cor_z_Gaus, signal_cor_Gaus, cor_z_top_Gaus, signal_cor_top_Gaus,
+                             color='powderblue', color_top='tab:blue', point_size=0.3, point_alpha=0.1,  title="", ylabel='Noise Correlation (z-scored responses)', yaxis_step=0.2)
+
+plot_scatter_noise_vs_signal(axes[2,0], None, None, np.abs(cor_Bern_top.flatten()), Geom_mean_Bern_top.flatten(),
+                                color='navajowhite', color_top='tab:orange', xlabel='Geometric Mean Response of a Pair', ylabel='Noise Correlation (absolute value)',
+                             title = "", xline = None, xlim = (0, 80), ylim = 0, trendline= 'moving_average', window_size=5000, point_alpha=0.001, point_size=0.03)
+plot_scatter_noise_vs_signal(axes[2,1], None, None, np.abs(cor_Gaus_top.flatten()), Geom_mean_Gaus_top.flatten(),
+                                color='powderblue', color_top='tab:blue', xlabel='Geometric Mean Response of a Pair', ylabel='Noise Correlation (absolute value)',
+                             title = "", xline = None, xlim = (0, 80), ylim = (0, None), trendline= 'moving_average', window_size=5000 , point_alpha=0.001, point_size=0.03)
+
+# Global Title
+fig.suptitle("Noise Correlations", fontsize=16)
+plt.savefig(wd + '/plots/Anton/noise_correlation.png', dpi=300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+###check - finding pairs with high NC and low geometric mean
+
+def find_specific_pairs(nc_matrix, gm_matrix, nc_thresh=0.15, gm_thresh=3.0):
+    """
+    Finds indices [img_id, n1, n2] where GM < 3 and NC > 0.15.
+
+    Parameters:
+    -----------
+    nc_matrix : np.ndarray (N_img, N_neu, N_neu)
+    gm_matrix : np.ndarray (N_img, N_neu, N_neu)
+
+    Returns:
+    --------
+    results : np.ndarray
+        List of [img_id, neuron1_id, neuron2_id]
+    """
+
+    # 1. Create a mask for your value conditions
+    # "Geom mean < 3" AND "NC > 0.15"
+    value_mask = (gm_matrix < gm_thresh) & (nc_matrix > nc_thresh)
+
+    # 2. Create a mask for the Upper Triangle (to exclude n1==n2 and duplicates)
+    # We create a 2D mask for one matrix slice and broadcast it to the 3D stack
+    n_neurons = nc_matrix.shape[1]
+
+    # k=1 means "start from the first diagonal ABOVE the main diagonal"
+    # This explicitly excludes n1 == n2
+    upper_tri_mask = np.triu(np.ones((n_neurons, n_neurons), dtype=bool), k=1)
+
+    # 3. Combine masks
+    # NumPy automatically broadcasts the 2D upper_tri_mask to the 3D value_mask
+    final_mask = value_mask & upper_tri_mask
+
+    # 4. Extract indices
+    # np.argwhere returns an array of shape (N_found, 3) -> [dim0, dim1, dim2]
+    # which corresponds to [img_id, n1, n2]
+    result_indices = np.argwhere(final_mask)
+
+    return result_indices
+
+cor_top_Bern = compute_corr(Spike_Bern[:, :, top_neurons_Bern])
+geom_mean_top_Bern = geometric_mean_pairwise(Mean_Bern[:, top_neurons_Bern])
+
+specific_pairs = find_specific_pairs(compute_corr(Spike_Bern[:, :, top_neurons_Bern]),
+                                     geometric_mean_pairwise(Mean_Bern[:, top_neurons_Bern]), nc_thresh=0.15, gm_thresh=3.0)
+
+pair = specific_pairs[0]
+#plot the scatter plot of spikes
+n1 = Spike_Bern[:, :, top_neurons_Bern][pair[0], :, pair[1]]
+n2 = Spike_Bern[:, :, top_neurons_Bern][pair[0], :, pair[2]]
+NC = cor_top_Bern[pair[0], pair[1], pair[2]]
+G_mean = geom_mean_top_Bern[pair[0], pair[1], pair[2]]
+mean1 = Mean_Bern[:, top_neurons_Bern][pair[0], pair[1]]
+mean2 = Mean_Bern[:, top_neurons_Bern][pair[0], pair[2]]
+
+#plot n1 vs n2 and print the NC and G_mean
+plt.figure(figsize=(8, 6))
+plt.scatter(n1, n2, alpha=0.5, color = 'tab:orange')
+plt.title(f'Scatter Plot of Neuron Pair\nNC: {NC:.2f}, Geometric Mean: {G_mean:.2f}')
+plt.xlabel('Neuron 1 Spike Counts')
+plt.ylabel('Neuron 2 Spike Counts')
+plt.savefig(wd + '/plots/Anton/specific_pair_scatter.png', dpi=300)
+
+
+
+
+
+
+#Now take 10 random pairs and plot 10 subplots with histogram of the correlations across images
 fig, axs = plt.subplots(2, 5, figsize=(20, 8))
 for i in range(10):
     ax = axs[i//5, i%5]
-    neuron1 = np.random.randint(0, correlations.shape[1])
-    neuron2 = np.random.randint(0, correlations.shape[1])
-    corr_values = correlations[:, neuron1, neuron2]
+    neuron1 = np.random.randint(0, cor_Bern.shape[1])
+    neuron2 = np.random.randint(0, cor_Bern.shape[1])
+    corr_values = cor_Bern[:, neuron1, neuron2]
     ax.hist(corr_values, bins=20, color='blue', alpha=0.7)
     ax.set_title(f'Neuron {neuron1} vs Neuron {neuron2}')
     ax.set_xlabel('Correlation Coefficient')
     ax.set_ylabel('Frequency')
     #add a vertical line at mean
-    mean_corr = np.mean(corr_values)
+    mean_corr = np.nanmean(corr_values)
     ax.axvline(mean_corr, color='red', linestyle='dashed', linewidth=1)
 
 plt.tight_layout()
 plt.show()
 
-#computer average correlation matrix across images
-avg_correlation_matrix = np.mean(correlations, axis=0)
-#now take lower triangle without diagonal and plot histogram
-lower_triangle_indices = np.tril_indices(avg_correlation_matrix.shape[0], k=-1)
-lower_triangle_values = avg_correlation_matrix[lower_triangle_indices]
-
-
-#####now compute noise correlations as correlations of z-scoring responses per each image
-data_V1_zscored = (data_V1 - np.mean(data_V1, axis=1, keepdims=True)) / np.std(data_V1, axis=1, keepdims=True)
-#now flatten across images and noise levels to shape (num_images * num_noise, num_neurons)
-data_V1_zscored = data_V1_zscored.reshape(-1, data_V1_zscored.shape[2])
-#compute correlation matrix
-corr_matrix_zscored = np.corrcoef(data_V1_zscored.T)
-#take lower triangle without diagonal and plot histogram
-lower_triangle_values_zscored = corr_matrix_zscored[lower_triangle_indices]
-
-
-###now compute signal correlation matrix as correlation of mean responses across images
-data_mean_V1_reshaped = data_mean_V1.reshape(-1, data_mean_V1.shape[1])
-signal_corr_matrix = np.corrcoef(data_mean_V1_reshaped.T)
-
-#take lower triangle without diagonal
-lower_triangle_values_signal = signal_corr_matrix[lower_triangle_indices]
-
-
-#now calculate noise correlation(z-scored) and signal correlation for only 10% of the neurons with highest median mean response
-num_neurons_to_select = int(0.1 * data_mean_V1.shape[1])
-median_mean_responses = np.median(data_mean_V1_reshaped, axis=0)
-top_neuron_indices = np.argsort(median_mean_responses)[-num_neurons_to_select:]
-#compute noise correlation matrix for these neurons
-data_V1_zscored_top = data_V1_zscored[:, top_neuron_indices]
-corr_matrix_zscored_top = np.corrcoef(data_V1_zscored_top.T)
-#need to get lower triangle indices for smaller matrix
-lower_triangle_indices_top = np.tril_indices(corr_matrix_zscored_top.shape[0], k=-1)
-lower_triangle_values_zscored_top = corr_matrix_zscored_top[lower_triangle_indices_top]
-#compute signal correlation matrix for these neurons
-data_mean_V1_top = data_mean_V1_reshaped[:, top_neuron_indices]
-signal_corr_matrix_top = np.corrcoef(data_mean_V1_top.T)
-lower_triangle_values_signal_top = signal_corr_matrix_top[lower_triangle_indices_top]
-
-#now plot scatter plot noise correlation vs signal correlation for all neurons (blue points) and for top 10% neurons (red points)
-plt.figure(figsize=(8, 6))
-#make points small
-plt.scatter(lower_triangle_values_signal, lower_triangle_values_zscored, s=0.3, alpha=0.1, label='All Neurons', color='blue')
-plt.scatter(lower_triangle_values_signal_top, lower_triangle_values_zscored_top, s=1, alpha=0.5, label='Top 10% Neurons', color='red')
-plt.title('Noise Correlation vs Signal Correlation')
-plt.xlabel('Signal Correlation')
-plt.ylabel('Noise Correlation')
-#add line of best fit for all neurons
-m, b = np.polyfit(lower_triangle_values_signal, lower_triangle_values, 1)
-#not dashed line but smaller dashed line
-plt.plot(lower_triangle_values_signal, m*lower_triangle_values_signal + b, color='black', linestyle='dotted', label='Fit All Neurons')
-#add line of best fit for top neurons
-m_top, b_top = np.polyfit(lower_triangle_values_signal_top, lower_triangle_values_zscored_top, 1)
-plt.plot(lower_triangle_values_signal_top, m_top*lower_triangle_values_signal_top + b_top, color='black', label='Fit Top 10% Neurons')
-#add legend
-plt.legend()
-#compute pearson correlation coefficient between noise and signal correlations
-pearson_corr = np.corrcoef(lower_triangle_values_signal, lower_triangle_values_zscored)[0, 1]
-pearson_corr_top = np.corrcoef(lower_triangle_values_signal_top, lower_triangle_values_zscored_top)[0, 1]
-
-#add text box with pearson correlation coefficient and slope value
-textstr_scatter = f'Pearson r (All): {pearson_corr:.3f}\nPearson r (Top 10%): {pearson_corr_top:.3f}\nSlope (All): {m:.3f}\nSlope (Top 10%): {m_top:.3f}'
-props_scatter = dict(boxstyle='round', facecolor='white', alpha=0.5)
-#make text box at bottom right
-plt.text(0.95, 0.05, textstr_scatter, transform=plt.gca().transAxes, fontsize=10,
-         verticalalignment='bottom', horizontalalignment='right', bbox=props_scatter)
-#add 0 x and y lines with light gray color
-plt.axhline(0, color='lightgray', linestyle='dashed', linewidth=1)
-plt.axvline(0, color='lightgray', linestyle='dashed', linewidth=1)
-
-
-#save plot in pdf format in directory "plots/Anton/"
-plt.savefig(wd + '/plots/Anton/noise_vs_signal_correlation_scatter_top10.pdf')
-#save it also as png as very heavy file
-plt.savefig(wd + '/plots/Anton/noise_vs_signal_correlation_scatter_top10.png', dpi=300)
-
-#compute the slope
-
-
-#now histogram of noise correlations with all neurons - white with black edges and top 10% - red(transparent) on secondary y axis as the number of pairs is too small
-bins = np.histogram_bin_edges(lower_triangle_values, bins=30)
-counts_all, _ = np.histogram(lower_triangle_values, bins=bins)
-counts_top, _ = np.histogram(lower_triangle_values_zscored_top, bins=bins)
-scaling_factor = 0.5
-counts_top_scaled = counts_top * scaling_factor
-
-fig, ax1 = plt.subplots(figsize=(8, 6))
-bars_all = ax1.bar(bins[:-1], counts_all, width=np.diff(bins), align='edge',
-                   color='white', edgecolor='black', alpha=0.7)
-
-ax2 = ax1.twinx()
-bars_top = ax2.bar(bins[:-1], counts_top_scaled, width=np.diff(bins), align='edge',
-                   color='red', edgecolor='black', alpha=0.5)
-
-mean_corr = np.mean(lower_triangle_values)
-mean_corr_top = np.mean(lower_triangle_values_zscored_top)
-ax1.axvline(mean_corr, color='black', linestyle='dashed', linewidth=1)
-ax2.axvline(mean_corr_top, color='red', linestyle='dashed', linewidth=1)
-
-ax1.set_xlabel('Noise Correlation')
-ax1.set_ylabel('Frequency (All Neurons)')
-ax2.set_ylabel('Frequency (Top 10% Neurons)', color='red')
-ax2.tick_params(axis='y', labelcolor='red')
-
-# Correct legend using proxy artists with correct facecolor
-from matplotlib.patches import Patch
-legend_patches = [
-    Patch(facecolor='white', edgecolor='black', label='All Neurons'),
-    Patch(facecolor='red', edgecolor='black', alpha=0.5, label='Top 10% Neurons')
-]
-ax1.legend(handles=legend_patches, loc='upper left')
-
-textstr_hist = f'Mean (All): {mean_corr:.3f}\nMean (Top 10%): {mean_corr_top:.3f}'
-props_hist = dict(boxstyle='round', facecolor='white', alpha=0.5)
-ax1.text(0.95, 0.95, textstr_hist, transform=ax1.transAxes, fontsize=10,
-         verticalalignment='top', horizontalalignment='right', bbox=props_hist)
-
-plt.title('Noise correlation (z-scored responses)')
-plt.tight_layout()
-
-
-#save plot in pdf format in directory "plots/Anton/"
-plt.savefig(wd + '/plots/Anton/noise_correlation_histogram_comparison_top10.pdf')
-#save it also as png as very heavy file
-plt.savefig(wd + '/plots/Anton/noise_correlation_histogram_comparison_top10.png', dpi=300)
-
-#compute the slope
