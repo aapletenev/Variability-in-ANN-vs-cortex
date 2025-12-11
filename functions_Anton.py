@@ -254,3 +254,364 @@ def plot_hist_comparison(ax, noise_cor, noise_cor_top, nbins=30,
 def geometric_mean_pairwise(means):
     pairwise_products = np.einsum('ki, kj -> kij', means, means)
     return np.sqrt(pairwise_products)
+
+
+
+
+
+def plot_dual_axis_boxplot(ax, data1, data2,
+                           label1='Bernoulli', label2='Gaussian',
+                           color1='tab:orange', color2='tab:blue',
+                           title='Fano Factor Comparison',
+                           xlabel='Frame', ylabel_suffix='Fano Factor',
+                           show_outliers=False, ylim = None):
+    """
+    Plots two datasets on a specific axis (ax) using dual Y-axes.
+    Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
+    """
+
+    # --- HELPER: Extract and Clean Data ---
+    def prepare_data(data):
+        """
+        Converts 2D or 3D arrays into a list of 1D arrays (one per frame).
+        Removes NaNs.
+        """
+
+        # Inner helper to flatten and clean NaNs
+        def clean_nans(arr):
+            flat = arr.flatten()
+            return flat[~np.isnan(flat)]
+
+        if data.ndim == 3:
+            # ASSUMPTION: Shape is (Samples, Frames, Neurons)
+            # We iterate over axis 1 (Frames)
+            n_frames = data.shape[1]
+            return [clean_nans(data[:, i, :]) for i in range(n_frames)]
+
+        elif data.ndim == 2:
+            # ASSUMPTION: Shape is (Frames, Neurons)
+            # We iterate over axis 0 (Frames)
+            n_frames = data.shape[0]
+            return [clean_nans(data[i, :]) for i in range(n_frames)]
+
+        else:
+            raise ValueError(f"Data must be 2D or 3D, but got {data.ndim}D")
+
+    # 1. Prepare Data Lists
+    plot_data1 = prepare_data(data1)
+    plot_data2 = prepare_data(data2)
+
+    # Ensure both datasets have the same number of frames for plotting
+    num_frames = len(plot_data1)
+    if len(plot_data2) != num_frames:
+        print(
+            f"Warning: Datasets have different frame counts ({len(plot_data1)} vs {len(plot_data2)}). Using {num_frames}.")
+
+    # 2. Setup Dual Axis
+    ax1 = ax
+    ax2 = ax1.twinx()
+
+    # 3. Define Positions
+    pos1 = np.arange(num_frames) - 0.15
+    pos2 = np.arange(num_frames) + 0.15
+
+    # 4. Plot Boxplots with 95% Whiskers
+    box1 = ax1.boxplot(plot_data1, positions=pos1, widths=0.3,
+                       patch_artist=True, showfliers=show_outliers,
+                       whis=(2.5, 97.5))
+
+    box2 = ax2.boxplot(plot_data2, positions=pos2, widths=0.3,
+                       patch_artist=True, showfliers=show_outliers,
+                       whis=(2.5, 97.5))
+
+    # --- STYLING ---
+    def style_boxplot(box_handle, fill_color):
+        for item in ['boxes', 'whiskers', 'fliers', 'caps']:
+            plt.setp(box_handle[item], color=fill_color)
+        plt.setp(box_handle["boxes"], facecolor=fill_color, alpha=0.5)
+        plt.setp(box_handle["medians"], color="black", linewidth=1.5)
+
+    style_boxplot(box1, color1)
+    style_boxplot(box2, color2)
+
+    # --- AXIS FORMATTING ---
+    ax1.set_xlabel(xlabel)
+    ax1.set_xticks(np.arange(num_frames))
+    ax1.set_xticklabels(np.arange(1, num_frames + 1))
+    ax1.set_title(title)
+
+    # Left Axis (Dataset 1)
+    ax1.set_ylabel(f'{ylabel_suffix} ({label1})', color=color1, fontweight='bold')
+    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.spines['left'].set_color(color1)
+    ax1.spines['left'].set_linewidth(2)
+    ax1.spines['right'].set_visible(False)
+
+    # Right Axis (Dataset 2)
+    ax2.set_ylabel(f'{ylabel_suffix} ({label2})', color=color2, fontweight='bold')
+    ax2.tick_params(axis='y', labelcolor=color2)
+    ax2.spines['right'].set_color(color2)
+    ax2.spines['right'].set_linewidth(2)
+    ax2.spines['left'].set_visible(False)
+
+    if ylim is not None:
+        ax1.set_ylim(bottom = ylim)
+        ax2.set_ylim(bottom = ylim)
+
+    return ax1, ax2
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def plot_single_axis_boxplot(ax, data1, data2,
+                             label1='Bernoulli', label2='Gaussian',
+                             color1='tab:orange', color2='tab:blue',
+                             title='Fano Factor Comparison',
+                             xlabel='Frame', ylabel_suffix='Fano Factor',
+                             show_outliers=False, ylim=None,
+                             legend_loc='upper right'):  # <--- NEW PARAMETER
+    """
+    Plots two datasets on the SAME axis (ax) side-by-side.
+    Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
+
+    Parameters:
+    -----------
+    legend_loc : str or int
+        Position of the legend (e.g., 'upper right', 'upper left', 'best', etc.)
+    """
+
+    # --- HELPER: Extract and Clean Data ---
+    def prepare_data(data):
+        def clean_nans(arr):
+            flat = arr.flatten()
+            return flat[~np.isnan(flat)]
+
+        if data.ndim == 3:
+            n_frames = data.shape[1]
+            return [clean_nans(data[:, i, :]) for i in range(n_frames)]
+        elif data.ndim == 2:
+            n_frames = data.shape[0]
+            return [clean_nans(data[i, :]) for i in range(n_frames)]
+        else:
+            raise ValueError(f"Data must be 2D or 3D, but got {data.ndim}D")
+
+    # 1. Prepare Data Lists
+    plot_data1 = prepare_data(data1)
+    plot_data2 = prepare_data(data2)
+
+    num_frames = len(plot_data1)
+    if len(plot_data2) != num_frames:
+        print(
+            f"Warning: Datasets have different frame counts ({len(plot_data1)} vs {len(plot_data2)}). Using {num_frames}.")
+
+    # 2. Define Positions
+    pos1 = np.arange(num_frames) - 0.15
+    pos2 = np.arange(num_frames) + 0.15
+
+    # 3. Plot Boxplots
+    box1 = ax.boxplot(plot_data1, positions=pos1, widths=0.3,
+                      patch_artist=True, showfliers=show_outliers,
+                      whis=(2.5, 97.5))
+
+    box2 = ax.boxplot(plot_data2, positions=pos2, widths=0.3,
+                      patch_artist=True, showfliers=show_outliers,
+                      whis=(2.5, 97.5))
+
+    # --- STYLING ---
+    def style_boxplot(box_handle, fill_color):
+        for item in ['boxes', 'whiskers', 'fliers', 'caps']:
+            plt.setp(box_handle[item], color=fill_color)
+        plt.setp(box_handle["boxes"], facecolor=fill_color, alpha=0.5)
+        plt.setp(box_handle["medians"], color="black", linewidth=1.5)
+
+    style_boxplot(box1, color1)
+    style_boxplot(box2, color2)
+
+    # --- AXIS FORMATTING ---
+    ax.set_xlabel(xlabel)
+    ax.set_xticks(np.arange(num_frames))
+    ax.set_xticklabels(np.arange(1, num_frames + 1))
+    ax.set_title(title)
+
+    ax.set_ylabel(ylabel_suffix, fontweight='bold')
+
+    # --- LEGEND (Updated) ---
+    ax.legend([box1["boxes"][0], box2["boxes"][0]],
+              [label1, label2],
+              loc=legend_loc)  # <--- USED HERE
+
+    if ylim is not None:
+        ax.set_ylim(bottom=ylim)
+
+    return ax
+
+
+
+
+#fast function to compute slopes using vectorized operations
+
+def compute_slope_var_mean(Mean, Var):
+    """
+    Computes slope and R^2 for Var = slope * Mean (regression through origin).
+    Vectorized over images.
+
+    Returns:
+    --------
+    slopes : np.ndarray (num_frames, num_neurons)
+    r2_scores : np.ndarray (num_frames, num_neurons)
+    """
+    # 1. Create a mask of valid data
+    valid_mask = np.isfinite(Mean) & np.isfinite(Var)
+
+    # 2. Clean data (0s are placeholders, ignored via mask later)
+    M_clean = np.where(valid_mask, Mean, 0.0)
+    V_clean = np.where(valid_mask, Var, 0.0)
+
+    # --- PART A: Calculate Slope ---
+
+    # Sum(x*y) and Sum(x*x)
+    numerator = np.sum(M_clean * V_clean, axis=0)
+    denominator = np.sum(M_clean ** 2, axis=0)
+
+    slopes = np.full(numerator.shape, np.nan)
+    np.divide(numerator, denominator, out=slopes, where=denominator != 0)
+
+    # --- PART B: Calculate R^2 ---
+
+    # 1. Calculate SS_res (Residual Sum of Squares)
+    # Prediction: y_hat = slope * x
+    # We broadcast slope (F, N) to match M_clean (I, F, N)
+    y_pred = slopes[np.newaxis, :, :] * M_clean
+
+    # Residuals: (y - y_hat)^2
+    residuals_sq = (V_clean - y_pred) ** 2
+
+    # Zero out invalid residuals before summing
+    residuals_sq = np.where(valid_mask, residuals_sq, 0.0)
+    ss_res = np.sum(residuals_sq, axis=0)
+
+    # 2. Calculate SS_tot (Total Sum of Squares)
+    # Formula: Sum((y - mean_y)^2)
+    # Optimized Formula: Sum(y^2) - (Sum(y)^2 / N)
+
+    valid_counts = np.sum(valid_mask, axis=0)
+    sum_y = np.sum(V_clean, axis=0)
+    sum_y_sq = np.sum(V_clean ** 2, axis=0)
+
+    # Initialize ss_tot
+    ss_tot = np.zeros_like(sum_y)
+
+    # Calculate SS_tot only where we have valid data to avoid div/0
+    mask_counts = valid_counts > 0
+    term2 = np.zeros_like(sum_y)
+    np.divide(sum_y[mask_counts] ** 2, valid_counts[mask_counts], out=term2[mask_counts])
+    ss_tot = sum_y_sq - term2
+
+    # 3. Calculate R^2 = 1 - (SS_res / SS_tot)
+    r2_scores = np.full(slopes.shape, np.nan)
+
+    # Avoid division by zero if SS_tot is 0 (perfect flat line) or counts < 2
+    # Note: R^2 can be negative for regression through origin
+    calc_mask = (ss_tot > 0) & (valid_counts > 1)
+
+    np.divide(ss_res, ss_tot, out=r2_scores, where=calc_mask)
+    r2_scores = 1 - r2_scores
+
+    # --- PART C: Final Cleanup ---
+
+    # Enforce NaN where insufficient data (<= 1 point)
+    invalid_final = valid_counts <= 1
+    slopes[invalid_final] = np.nan
+    r2_scores[invalid_final] = np.nan
+
+    # Also mask R2 where SS_tot was 0 (undefined R2, usually constant variance)
+    r2_scores[ss_tot == 0] = np.nan
+
+    return slopes, r2_scores
+
+
+
+def smooth_func(x, a, b):
+    return a * (x**b)
+def fit_lin_power(x, y, a_initial = 1.0, b_initial = 1e-3):
+    mask = (x > 0) & (y > 0) & np.isfinite(x) & np.isfinite(y)
+    if mask.sum() < 2:
+        return np.nan, np.nan, np.nan  # a_lin, b_lin, r2_lin
+    xm = x[mask]; ym = y[mask]
+    try:
+        params, _ = curve_fit(smooth_func, xm, ym, maxfev=1_000_000, p0=[a_initial, b_initial])
+        a_lin, b_lin = params
+        y_hat = smooth_func(xm, a_lin, b_lin)
+        ss_res = np.sum((ym - y_hat)**2)
+        ss_tot = np.sum((ym - np.mean(ym))**2)
+        r2_lin = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
+        return a_lin, b_lin, r2_lin
+    except Exception:
+        return np.nan, np.nan, np.nan
+
+
+def compute_global_frame_fits(mean_data, var_data):
+    """
+    Aggregates all neurons and images per frame to find a global 'a' and 'b'.
+    Returns dictionary of lists (length = num_frames).
+    """
+    num_frames = mean_data.shape[1]
+    results = {'a': [], 'b': [], 'r2': []}
+
+    for frame_idx in range(num_frames):
+        # Flatten across images AND neurons
+        x_flat = mean_data[:, frame_idx, :].flatten()
+        y_flat = var_data[:, frame_idx, :].flatten()
+
+        a, b, r2 = fit_lin_power(x_flat, y_flat)
+
+        results['a'].append(a)
+        results['b'].append(b)
+        results['r2'].append(r2)
+
+    return results
+
+
+def compute_neuron_fits(mean_data, var_data, global_init_params=None):
+    """
+    Computes fit for each neuron individually per frame.
+
+    Returns:
+    --------
+    a_mat, b_mat, r2_mat : np.ndarray
+        Shape (num_frames, num_neurons)  <-- CHANGED to Frame x Neuron
+    """
+    num_images, num_frames, num_neurons = mean_data.shape
+
+    # Pre-allocate arrays (Frames x Neurons)
+    a_mat = np.zeros((num_frames, num_neurons))
+    b_mat = np.zeros((num_frames, num_neurons))
+    r2_mat = np.zeros((num_frames, num_neurons))
+
+    for frame_idx in range(num_frames):
+
+        # Determine initial guesses for this frame
+        p0_a = 1.0
+        p0_b = 1e-3
+
+        if global_init_params:
+            if not np.isnan(global_init_params['a'][frame_idx]):
+                p0_a = global_init_params['a'][frame_idx]
+                p0_b = global_init_params['b'][frame_idx]
+
+        for neuron_idx in range(num_neurons):
+            x_neuron = mean_data[:, frame_idx, neuron_idx]
+            y_neuron = var_data[:, frame_idx, neuron_idx]
+
+            a, b, r2 = fit_lin_power(x_neuron, y_neuron,
+                                     a_initial=p0_a,
+                                     b_initial=p0_b)
+
+            # Index by [frame, neuron]
+            a_mat[frame_idx, neuron_idx] = a
+            b_mat[frame_idx, neuron_idx] = b
+            r2_mat[frame_idx, neuron_idx] = r2
+
+    return a_mat, b_mat, r2_mat
