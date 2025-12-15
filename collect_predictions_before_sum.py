@@ -16,14 +16,29 @@ Assumptions
 1. scans.csv must be in same directory
 2. microns_area_labels.csv is in same directory
 """
+
+def save_predictions(data, path, filename, dirs = ['frames', 'sum', 'mean', 'var', 'label']):
+    for dir in dirs:
+        os.makedirs(path + dir, exist_ok=True)
+    for i,dir in enumerate(dirs):
+        np.save(path + dir + '/' + filename, data[i])
+
 #the format is (num_images, height, width)
 images = np.load('image_arr_anton(first100images).npy')
 
 #plot first  image = images[0]  to verify loading worked
-plt.imshow(images[3], cmap='gray')
+plt.imshow(images[0], cmap='gray')
 
 
-start_time = time.perf_counter()
+#start_time = time.perf_counter()
+
+wd = os.getcwd()
+dirs = ['frames', 'sum', 'mean', 'var', 'label']
+
+#################100 images predictions########################
+path = wd + '/predictions/Anton/'
+#create 5 directories in path if it does not exist "frames", "sum", "mean", "var", "label"
+os.makedirs(path, exist_ok=True)
 
 # Make predictions on this batch
 pred_arrs_Gaus = make_predictions('dynamic', images, 10, [[4, 7]],
@@ -35,15 +50,7 @@ duration = (time.perf_counter()- start_time)/60
 print(f"Code execution duration: {duration:.4f} minutes")
 
 #save the predictions in predictions/Anton
-wd = os.getcwd()
-path = wd + '/predictions/Anton/'
-#create 5 directories in path if it does not exist "frames", "sum", "mean", "var", "label"
-os.makedirs(path, exist_ok=True)
-dirs = ['frames', 'sum', 'mean', 'var', 'label']
-for dir in dirs:
-    os.makedirs(path + dir, exist_ok=True)
-for i,dir in enumerate(dirs):
-    np.save(path + dir + '/Gaus_10.npy', pred_arrs_Gaus[i])
+save_predictions(pred_arrs_Gaus, path, 'Gaus_10.npy', dirs)
 
 
 
@@ -52,8 +59,45 @@ pred_arrs_Bern = make_predictions('dynamic', images, 0, [[4, 7]],
                                  noise_seeds=100, before_sum=True)
 
 #save the predictions in predictions/Anton
-for i,dir in enumerate(dirs):
-    np.save(path + dir + '/Bern.npy', pred_arrs_Bern[i])
+save_predictions(pred_arrs_Bern, path, 'Bern.npy', dirs)
+
+
+
+#####add predictions for 100 images but 100 trials but with 10 blank images at the start######
+path = wd + '/predictions/Anton/Blank_image_in_front/'
+os.makedirs(path, exist_ok=True)
+
+pred_arrs_Bern_blank = make_predictions('dynamic', images, 0, [[4, 7]],
+                                    stochastic_bin_param=True,
+                                    noise_seeds=100, num_frames = 20, num_frames_blank=10, before_sum=True)
+#save the predictions in predictions/Anton
+save_predictions(pred_arrs_Bern_blank, path, 'Bern_blank_10.npy', dirs)
+pred_arrs_Gaus_blank = make_predictions('dynamic', images, 10, [[4, 7]],
+                                    stochastic_bin_param=False,
+                                    noise_seeds=100, num_frames = 20, num_frames_blank=10, before_sum=True)
+#save the predictions in predictions/Anton
+save_predictions(pred_arrs_Gaus_blank, path, 'Gaus_10_blank_10.npy', dirs)
+
+
+
+##############10 images but 1000 trials##################
+path = wd + '/predictions/Anton/1000_trials/'
+os.makedirs(path, exist_ok=True)
+
+pred_arrs_Bern_1000 = make_predictions('dynamic', images[0:19], 0, [[4, 7]],
+                                 stochastic_bin_param=True,
+                                 noise_seeds=1000, before_sum=False)
+save_predictions(pred_arrs_Bern_1000, path, 'Bern_1000.npy', dirs = ['sum', 'mean', 'var', 'label'])
+
+
+pred_arrs_Gaus_1000 = make_predictions('dynamic', images[0:19], 10, [[4, 7]],
+                                    stochastic_bin_param=False,
+                                    noise_seeds=1000, before_sum=False)
+save_predictions(pred_arrs_Gaus_1000, path, 'Gaus_10_1000.npy', dirs = ['sum', 'mean', 'var', 'label'])
+
+
+
+
 
 
 
@@ -80,7 +124,7 @@ plt.yscale('log')
 
 
 #prediction for the constant stimulus
-pred_arrs_const = make_predictions('dynamic', images[3:4], 0, [[4, 7]],
+pred_arrs_const = make_predictions('dynamic', images[0:4], 0, [[4, 7]],
                                  stochastic_bin_param=False,
                                  noise_seeds=2, before_sum=True)
 
@@ -89,3 +133,7 @@ plt.plot(pred_arrs_Bern[0][0, 0, :, 13])
 plt.plot(pred_arrs_Bern[0][0, 1, :, 13])
 plt.plot(pred_arrs_Bern[0][0, 2, :, 13])
 
+
+plt.plot(pred_arrs_const[0][0, 0, :, 145])
+plt.plot(pred_arrs_Bern[0][0, 0, :, 145])
+plt.plot(pred_arrs_Bern_blank[0][0, 0, :, 145])

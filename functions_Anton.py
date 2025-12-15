@@ -1,3 +1,6 @@
+import numpy as np
+from scipy import linalg
+
 #####functions
 #function to return neurons of specific area
 def get_neurons_of_area(data, labels, area_code = 1):
@@ -371,7 +374,7 @@ def plot_single_axis_boxplot(ax, data1, data2,
                              title='Fano Factor Comparison',
                              xlabel='Frame', ylabel_suffix='Fano Factor',
                              show_outliers=False, ylim=None,
-                             legend_loc='upper right'):  # <--- NEW PARAMETER
+                             legend_loc='upper right', yline = None):  # <--- NEW PARAMETER
     """
     Plots two datasets on the SAME axis (ax) side-by-side.
     Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
@@ -444,7 +447,8 @@ def plot_single_axis_boxplot(ax, data1, data2,
 
     if ylim is not None:
         ax.set_ylim(bottom=ylim)
-
+    if yline is not None:
+        ax.axhline(yline, color='lightgray', linestyle='dashed', linewidth=1)
     return ax
 
 
@@ -535,7 +539,7 @@ def compute_slope_var_mean(Mean, Var):
 
 def smooth_func(x, a, b):
     return a * (x**b)
-def fit_lin_power(x, y, a_initial = 1.0, b_initial = 1e-3):
+def fit_lin_power(x, y, a_initial = 1e-3, b_initial = 1e-3):
     mask = (x > 0) & (y > 0) & np.isfinite(x) & np.isfinite(y)
     if mask.sum() < 2:
         return np.nan, np.nan, np.nan  # a_lin, b_lin, r2_lin
@@ -615,3 +619,386 @@ def compute_neuron_fits(mean_data, var_data, global_init_params=None):
             r2_mat[frame_idx, neuron_idx] = r2
 
     return a_mat, b_mat, r2_mat
+
+
+###compute linear fisher info with kanitscheider correction
+
+
+def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, nan_fill_value=100.0, shuffle=False):
+    """
+    Computes Bias-Corrected Linear Fisher Information.
+
+    Parameters
+    ----------
+    spike_counts : np.ndarray
+        Shape (2, n_trials, n_neurons).
+    d_theta : float
+        Difference in stimulus parameter.
+    method : str
+        'simple' or 'cholesky'.
+    reg : float
+        Regularization term for stability.
+    nan_fill_value : float
+        Value to replace NaNs with.
+    shuffle : bool
+        If True, computes 'Shuffled Fisher Information' (Is) by removing
+        noise correlations (diagonalizing the covariance matrix).
+
+    Returns
+    -------
+    I_bc, var_I_bc : (float, float)
+    """
+    # 0. Pre-processing: Handle NaNs
+    X = np.array(spike_counts, dtype=float, copy=True)
+    if np.isnan(X).any():
+        X[np.isnan(X)] = nan_fill_value
+
+    n_conds, T, N = X.shape
+
+    # Correction constraint check
+    v = (2 * T) - 2
+    if v - N - 3 <= 0:
+        # Note: If shuffling, effective N might be considered differently in some contexts,
+        # but usually the standard formula is applied to the diagonal matrix.
+        raise ValueError(f"Insufficient trials. Requirement: 2*T > N + 5. (Got T={T}, N={N})")
+
+    # 1. Compute Statistics
+    X1, X2 = X[0], X[1]
+
+    mu1 = np.mean(X1, axis=0)
+    mu2 = np.mean(X2, axis=0)
+    d_mu = mu1 - mu2
+    d_mu_d_theta = d_mu / d_theta
+
+    # --- COVARIANCE CALCULATION ---
+    # We compute S slightly differently depending on method/shuffle
+
+    if method == 'simple':
+        cov1 = np.cov(X1, rowvar=False)
+        cov2 = np.cov(X2, rowvar=False)
+        S = (cov1 + cov2) / 2.0
+
+        # --- SHUFFLING LOGIC ---
+        if shuffle:
+            # Set off-diagonals to zero
+            # np.diag(S) gets the diagonal; np.diag(...) puts it back into a matrix
+            S = np.diag(np.diag(S))
+
+        # Handle N=1 case
+        if N == 1:
+            S = np.array([[S.item()]])  # S might be scalar after diag extraction if N=1
+
+        # Invert
+        try:
+            S_inv = np.linalg.inv(S)
+        except np.linalg.LinAlgError:
+            S_inv = np.linalg.pinv(S)
+
+        I_naive = d_mu_d_theta.T @ S_inv @ d_mu_d_theta
+
+        if isinstance(I_naive, np.ndarray):
+            I_naive = I_naive.item()
+
+    elif method == 'cholesky':
+        # Compute S manually
+        X1_c = X1 - mu1
+        X2_c = X2 - mu2
+        X_combined = np.concatenate([X1_c, X2_c], axis=0)
+
+        S = (X_combined.T @ X_combined) / (2 * T - 2)
+
+        # --- SHUFFLING LOGIC ---
+        if shuffle:
+            # Zero out off-diagonals
+            S = np.diag(np.diag(S))
+
+        # Regularize
+        S.flat[::N + 1] += reg
+
+        # Solve
+        try:
+            c, lower = linalg.cho_factor(S, lower=True)
+            x = linalg.cho_solve((c, lower), d_mu_d_theta)
+            I_naive = np.dot(d_mu_d_theta, x)
+        except linalg.LinAlgError:
+            I_naive = d_mu_d_theta @ np.linalg.pinv(S) @ d_mu_d_theta
+
+    else:
+        raise ValueError("Method must be 'simple' or 'cholesky'")
+
+    # 3. Bias Correction
+    # (Applied to the computed I_naive, regardless of whether S was diagonalized)
+    numerator = 2 * T - N - 3
+    denominator = 2 * T - 2
+    factor = numerator / denominator
+    subtraction = (2 * T * N) / (T * T * (d_theta ** 2))
+
+    I_bc = I_naive * factor - subtraction
+
+    # 4. Variance Calculation
+    denom_common = (v - N) * (v - N - 3)
+    alpha = 2 / denom_common
+    beta = (v - N - 1) / denom_common
+    gamma = (2 * T) / (T * T * (d_theta ** 2))
+
+    var_I_bc = (alpha + 2 * beta) * (I_bc ** 2) + \
+               (6 * alpha + 12 * beta + 4) * gamma * I_bc + \
+               (3 * alpha + 6 * beta + 2) * (gamma ** 2) * N
+
+    return I_bc, var_I_bc
+
+
+def compute_fisher_info_all(data_tensor, n_image_pairs=10, n_repeats=50, n_list=None, d_theta=1.0, image_pairs=None):
+    """
+    Computes Fisher Information scaling with hierarchical sampling.
+    Can accept a fixed list of image pairs or generate them randomly.
+
+    Parameters
+    ----------
+    data_tensor : np.ndarray
+        Shape (n_images, n_trials, n_total_neurons).
+    n_image_pairs : int
+        Number of random image pairs to generate (ignored if image_pairs is not None).
+    n_repeats : int
+        Number of random neuron draws for each N (per image pair).
+    n_list : list, optional
+        List of population sizes (N) to test.
+    d_theta : float
+        Stimulus difference (default 1.0).
+    image_pairs : list or np.ndarray, optional
+        A list of specific image pairs to use, e.g., [[0, 5], [10, 2]].
+        If provided, n_image_pairs is ignored.
+
+    Returns
+    -------
+    FI_real : np.ndarray
+        Shape (n_pairs, n_repeats, len(n_list))
+    FI_shuf : np.ndarray
+        Shape (n_pairs, n_repeats, len(n_list))
+    n_list : np.ndarray
+        The list of N values used.
+    used_image_pairs : np.ndarray
+        The actual array of image pairs used (Shape: n_pairs x 2).
+    """
+
+    # 1. Setup N list
+    if n_list is None:
+        n_list = np.linspace(2, 50, 10, dtype=int)
+        n_list = np.unique(n_list)
+
+    n_sizes = len(n_list)
+    total_images, total_trials, total_neurons = data_tensor.shape
+
+    # 2. Setup Image Pairs
+    if image_pairs is not None:
+        # Case A: Use provided pairs
+        used_image_pairs = np.array(image_pairs, dtype=int)
+        actual_n_pairs = len(used_image_pairs)
+        print(f"Using {actual_n_pairs} pre-defined image pairs.")
+    else:
+        # Case B: Generate random pairs
+        actual_n_pairs = n_image_pairs
+        used_image_pairs = np.zeros((actual_n_pairs, 2), dtype=int)
+        for k in range(actual_n_pairs):
+            used_image_pairs[k] = np.random.choice(total_images, 2, replace=False)
+        print(f"Generated {actual_n_pairs} random image pairs.")
+
+    # 3. Pre-allocate Output Arrays
+    FI_real = np.zeros((actual_n_pairs, n_repeats, n_sizes))
+    FI_shuf = np.zeros((actual_n_pairs, n_repeats, n_sizes))
+
+    print(f"Starting hierarchical analysis...")
+    print(f"For each pair, sampling {n_repeats} repeats for N in {n_list}")
+
+    # --- OUTER LOOP: Image Pairs ---
+    for p in range(actual_n_pairs):
+
+        # Get the specific pair for this iteration
+        img_indices = used_image_pairs[p]
+
+        # Optimization: Slice images ONCE per pair
+        current_pair_data = data_tensor[img_indices].copy()
+
+        # --- MIDDLE LOOP: Population Sizes (N) ---
+        for i, N in enumerate(n_list):
+
+            # --- INNER LOOP: Neuron Repeats ---
+            for r in range(n_repeats):
+                # Randomly select N neurons
+                neuron_indices = np.random.choice(total_neurons, N, replace=False)
+
+                # Slice specific neurons
+                sub_data = current_pair_data[:, :, neuron_indices]
+
+                # Compute Real FI
+                val_real, _ = compute_fisher_info(
+                    sub_data, d_theta=d_theta, method='cholesky', shuffle=False
+                )
+
+                # Compute Shuffled FI
+                val_shuf, _ = compute_fisher_info(
+                    sub_data, d_theta=d_theta, method='cholesky', shuffle=True
+                )
+
+                # Store
+                FI_real[p, r, i] = val_real
+                FI_shuf[p, r, i] = val_shuf
+
+        # Optional: Print progress every 10 pairs or if few pairs
+        if actual_n_pairs < 20 or (p + 1) % 10 == 0:
+            print(f"Finished Image Pair {p + 1}/{actual_n_pairs} (Indices: {img_indices})")
+
+    return FI_real, FI_shuf, n_list, used_image_pairs
+
+
+def plot_scaling_metric(data, n_list, aggregation='median', title="Fisher Information Scaling",
+                        ylabel="Fisher Information", color='gray', line_width=1.5,
+                        yline = None,  ylim = None, ax=None):
+    """
+    Plots scaling curves for multiple image pairs with simplified styling.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Shape (n_image_pairs, n_repeats, n_sizes).
+    n_list : array-like
+        List of N values (x-axis).
+    aggregation : str
+        'mean' or 'median' over repeats.
+    title : str
+        Title of the plot.
+    ylabel : str
+        Label for the y-axis.
+    color : str
+        Color of the lines (default 'gray').
+    ax : matplotlib.axes.Axes, optional
+        Axes object to plot on. If None, creates a new figure.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Check input shape
+    if data.ndim != 3:
+        raise ValueError(f"Data must be 3D (pairs, repeats, sizes). Got shape {data.shape}")
+
+    # Aggregate over repeats (axis 1)
+    if aggregation == 'mean':
+        y_values = np.mean(data, axis=1)
+    elif aggregation == 'median':
+        y_values = np.median(data, axis=1)
+    else:
+        raise ValueError("Aggregation must be 'mean' or 'median'")
+
+    n_pairs = y_values.shape[0]
+
+    # Plot each pair
+    # We use alpha=0.5 to make overlapping lines visible but not overwhelming
+    for i in range(n_pairs):
+        ax.plot(n_list, y_values[i],
+                linestyle='-',
+                linewidth=line_width,  # Thinner lines
+                marker=None,  # No points
+                color=color,  # Single parameter color
+                alpha=0.6)  # Slight transparency
+
+    ax.set_xlabel("Number of Neurons (N)")
+    ax.set_ylabel(ylabel)
+    ax.set_title(f"{title}\n({aggregation} over neuron samples)")
+
+    # Disable grid
+    ax.grid(False)
+    if yline is not None:
+        ax.axhline(yline, color='black', linestyle='dashed', linewidth=1)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+
+    return ax
+
+
+
+
+
+
+
+
+
+def plot_fisher_scaling(FI, FI_shuffle, N_list, color='tab:blue', ax=None, title=None):
+    """
+    Plots Fisher Information vs Number of Neurons.
+
+    Parameters
+    ----------
+    FI : np.ndarray
+        Shape (n_repeats, n_sizes). Real Fisher Information.
+    FI_shuffle : np.ndarray
+        Shape (n_repeats, n_sizes). Shuffled Fisher Information.
+    N_list : np.ndarray
+        List of N values corresponding to the columns of FI inputs.
+    color : str
+        Color for the lines and fill area.
+    ax : matplotlib.axes.Axes, optional
+        Existing axes to plot on. If None, creates a new figure.
+    title : str, optional
+        Title for the plot.
+
+    Returns
+    -------
+    ax : matplotlib.axes.Axes
+    """
+    # 1. Calculate Statistics
+    # Mean
+    mean_fi = np.mean(FI, axis=0)
+    mean_shuf = np.mean(FI_shuffle, axis=0)
+
+    # 95% Interval (Percentiles of the distribution of random draws)
+    # This shows the variability due to selecting different neurons
+    ci_lower = np.percentile(FI, 2.5, axis=0)
+    ci_upper = np.percentile(FI, 97.5, axis=0)
+
+    # 2. Setup Plot
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7, 5))
+
+    # 3. Plot Real Fisher Information (Solid Line + Shadow)
+    # We capture the line object to ensure exact color matching if 'auto' colors are used
+    line, = ax.plot(N_list, mean_fi,
+                    color=color,
+                    linestyle='-',
+                    linewidth=2,
+                    label='Real ($I_{pop}$)')
+
+    # Use the color from the line for the fill
+    plot_color = line.get_color()
+
+    ax.fill_between(N_list, ci_lower, ci_upper,
+                    color=plot_color,
+                    alpha=0.2,
+                    edgecolor='none')  # Remove edge from shadow for cleaner look
+
+    # 4. Plot Shuffled Fisher Information (Dashed Line, No Shadow)
+    ax.plot(N_list, mean_shuf,
+            color=plot_color,
+            linestyle='--',
+            linewidth=2,
+            label='Shuffled ($I_{ind}$)')
+
+    # 5. Formatting
+    ax.set_xlabel('Number of Neurons (N)', fontsize=12)
+    ax.set_ylabel('Fisher Information ($d\'^2$)', fontsize=12)
+
+    if title:
+        ax.set_title(title, fontsize=14)
+    else:
+        ax.set_title('Population Information Scaling', fontsize=14)
+
+    ax.legend(fontsize=11, frameon=False)
+
+    # Add a grid for easier reading
+    ax.grid(True, linestyle=':', alpha=0.6)
+
+    # Despine (remove top and right borders) for scientific style
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    return ax
+

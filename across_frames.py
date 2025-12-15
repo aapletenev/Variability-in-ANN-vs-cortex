@@ -49,6 +49,10 @@ a_neurons_Bern, b_neurons_Bern, r2_neurons_Bern = compute_neuron_fits(Mean_frame
 a_neurons_Gaus, b_neurons_Gaus, r2_neurons_Gaus = compute_neuron_fits(Mean_frames_Gaus, Var_frames_Gaus, global_res_Gaus)
 
 
+cor_Bern = [get_cor_zscored(Spike_frames_Bern[:,:,i,:])[0] for i in range(Spike_frames_Bern.shape[2])]
+cor_Bern = np.array(cor_Bern)
+cor_Gaus = [get_cor_zscored(Spike_frames_Gaus[:,:,i,:])[0] for i in range(Spike_frames_Gaus.shape[2])]
+cor_Gaus = np.array(cor_Gaus)
 
 ###plots
 # Plot FF across frames for both types of noise
@@ -84,7 +88,11 @@ plot_single_axis_boxplot(axes[2,0], b_neurons_Bern, b_neurons_Gaus,
                          ylim=0,
                          legend_loc='best')
 
-axes[2,1].axis('off')
+# 6. Mean Correlation Coefficient
+plot_single_axis_boxplot(axes[2,1], cor_Bern, cor_Gaus,
+                         title="Noise correlation (z-scored responses)",
+                         ylabel_suffix="Noise correlation",
+                         legend_loc='best', yline=0)
 
 plt.tight_layout()
 #plt.show()
