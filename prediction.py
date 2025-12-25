@@ -35,7 +35,8 @@ def visual_prediction(session: int, scan_idx: int, stimuli_noise) -> np.array: #
     results = pred_model.predict(stimuli = stimuli_noise)
     return results, ids   
 
-def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, num_frames: int = 15):
+def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, stochastic_bin_param = False, noise_seeds: int = 100, 
+                     num_frames: int = 15, return_before_sum: bool = False):
     
     """
     Parameters
@@ -54,7 +55,8 @@ def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, sto
         how many times we add noise to the prediction
     num_frames: int
         number of frames per image, defaults to 30
-    
+    return_before_sum: bool
+        used for analysis, returns original prediction object
     Returns
     -------
     stack_sum
@@ -79,14 +81,16 @@ def make_predictions(noise_type: str, images: np.ndarray, sigma: int, scans, sto
         ids_list.append(ids)
 
     def process_image(i: int):
-        predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0) # need to broadcast?
+        predict_stack = np.repeat(images[i][np.newaxis, :], num_frames, axis=0)
         return noise_iterations(models_list, ids_list, noise_type, noise_seeds, predict_stack, sigma, scans, stochastic_bin_param, num_frames)
         
     final_array = np.array([process_image(i) for i in range(len(images))])
+    if return_before_sum: return final_array # use for Anton analysis
 
-    final_stack_sum = np.sum(final_array, axis=2)
-    final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
+    else:
+        final_stack_sum = np.sum(final_array, axis=2)
+        final_mean, final_var = np.mean(final_stack_sum, axis=1), np.var(final_stack_sum, axis=1)
 
-    num_neurons = get_neuron_units(scans)
-    regions = [get_brain_region(mapping, num_neurons) for mapping in ids_list] # this is why output is in list
-    return final_stack_sum, final_mean, final_var, regions
+        num_neurons = get_neuron_units(scans)
+        regions = [get_brain_region(mapping, num_neurons) for mapping in ids_list] # this is why output is in list
+        return final_stack_sum, final_mean, final_var, regions
