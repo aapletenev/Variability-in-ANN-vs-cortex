@@ -1,8 +1,8 @@
 """
-Figure 1 Utilities - Reproducible functions for data loading and preprocessing
-
 This module contains all the data loading and preprocessing functions needed
-to reproduce the analysis up to figure1_collection().
+to reproduce the analysis.
+
+Example usage at line 460.
 """
 
 import numpy as np
@@ -267,10 +267,10 @@ def sort_by_median(v1mean_stochbin: np.ndarray, v1var_stochbin: np.ndarray,
     }
 
 
-def preprocess_neuron_data(folder_path_stochbin: str = 'predictions/8-27-2025/',
-                          folder_path_sigma10: str = 'predictions/sigma10',
+def preprocess_neuron_data(folder_path_stochbin: str,
+                          folder_path_sigma10: str,
                           threshold: float = 100.0,
-                          num_grey_images: int = 9) -> dict:
+                          num_grey_images: int = 0) -> dict:
     """
     Complete preprocessing pipeline for neuron data.
     
@@ -287,9 +287,9 @@ def preprocess_neuron_data(folder_path_stochbin: str = 'predictions/8-27-2025/',
         Path to stochastic binary prediction folder
     folder_path_sigma10 : str, default='predictions/sigma10'
         Path to sigma10 prediction folder
-    threshold : float, default=100.0
+    threshold : float, default=100.0 (biologically unplausible spike rate)
         Threshold value for masking (values > threshold are set to NaN)
-    num_grey_images : int, default=9
+    num_grey_images : int, default=0 (for our analysis we needed this at one point, should be irrelevant for most reproduction)
         Number of grey images to remove from the beginning
         
     Returns:

@@ -151,8 +151,8 @@ def fit_neuron_data(mean_data, var_data, a_initial=1.0, b_initial=1e-3):
     pooled_rsq_lin, pooled_rsq_lin_model = [], []
     
     for neuron in range(n_neurons):
-        x = mean_data[:, neuron].astype(float)
-        y = var_data[:, neuron].astype(float)
+        x = mean_data[..., neuron].astype(float)
+        y = var_data[..., neuron].astype(float)
         mask = (x > 0) & (y > 0) & np.isfinite(x) & np.isfinite(y)
         
         if mask.sum() < 2:
@@ -236,167 +236,110 @@ def fit_pixel_data(mean_data, var_data, a_glob=None, b_glob=None):
 
 
 # ==============================================================================
-# MAIN EXECUTION
+# PLOTTING FUNCTION
 # ==============================================================================
-
-def main():
-    """Main execution function."""
-    
-    print("=" * 80)
-    print("FIGURE 1 GENERATION - COMPLETE WORKFLOW")
-    print("=" * 80)
-    print()
-    
-    # Step 1: Preprocess neuron data
-    print("Step 1: Loading and preprocessing neuron data...")
-    neuron_data = preprocess_neuron_data(
-        folder_path_stochbin='predictions/8-27-2025/',
-        folder_path_sigma10='predictions/sigma10',
-        threshold=100.0,
-        num_grey_images=9
-    )
-    
-    # Extract sorted arrays
-    stochbin_meanv1 = neuron_data['stochbin_meanv1']
-    stochbin_varv1 = neuron_data['stochbin_varv1']
-    sigma10_meanv1 = neuron_data['sigma10_meanv1']
-    sigma10_varv1 = neuron_data['sigma10_varv1']
-    
-    print(f"\nNeuron data shapes:")
-    print(f"  Stochbin: {stochbin_meanv1.shape}")
-    print(f"  Sigma10: {sigma10_meanv1.shape}")
-    print()
-    
-    # Step 2: Collect pixel-space statistics
-    print("Step 2: Collecting pixel-space statistics...")
-    pixel_data = figure1_collection(
-        stochbin_sum=neuron_data['stochbin_sum'],
-        sigma10_sum=neuron_data['sigma10_sum'],
-        num_imgs=100,
-        num_noise_seeds=10,
-        num_frames=15,
-        img_height=144,
-        img_width=256,
-        relu_threshold=128
-    )
-    print()
-    
-    # Step 3: Fit neuron-level data
-    print("Step 3: Fitting power law models to neuron data...")
-    print("  Fitting stochastic binary noise...")
-    stochbin_fits = fit_neuron_data(
-        stochbin_meanv1, stochbin_varv1,
-        a_initial=2.5e-3, b_initial=2.23
-    )
-    
-    print("  Fitting Gaussian noise...")
-    sigma10_fits = fit_neuron_data(
-        sigma10_meanv1, sigma10_varv1,
-        a_initial=2.2e-4, b_initial=2.24
-    )
-    
-    print(f"\nGlobal fit parameters:")
-    print(f"  Stochbin: a={stochbin_fits['a_glob_lin']:.2e}, b={stochbin_fits['b_glob_lin']:.2f}")
-    print(f"  Sigma10: a={sigma10_fits['a_glob_lin']:.2e}, b={sigma10_fits['b_glob_lin']:.2f}")
-    print()
-    
-    # Step 4: Fit pixel-level data
-    print("Step 4: Fitting power law models to pixel data...")
-    
-    # Bernoulli noise
-    bernoulli_fits = fit_pixel_data(
-        pixel_data['bnoise_mean'], pixel_data['bnoise_var'],
-        stochbin_fits['a_glob_lin'], stochbin_fits['b_glob_lin']
-    )
-    
-    # Bernoulli ReLU
-    bernoulli_relu_fits = fit_pixel_data(
-        pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
-        stochbin_fits['a_glob_lin'], stochbin_fits['b_glob_lin']
-    )
-    
-    # Gaussian noise
-    gaussian_fits = fit_pixel_data(
-        pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
-        sigma10_fits['a_glob_lin'], sigma10_fits['b_glob_lin']
-    )
-    
-    # Gaussian ReLU
-    gaussian_relu_fits = fit_pixel_data(
-        pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
-        sigma10_fits['a_glob_lin'], sigma10_fits['b_glob_lin']
-    )
-    
-    print("  All pixel fits complete!")
-    print()
-    
-    # Step 5: Generate the figure
-    print("Step 5: Generating Figure 1...")
-    print("  (This may take a moment...)")
-    
-    fig = plot_figure1(
-        stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
-        pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
-        pixel_data['bnoise_mean'], pixel_data['bnoise_var'],
-        pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
-        pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
-        stochbin_fits['rsqlist_lin'], sigma10_fits['rsqlist_lin'],
-        stochbin_fits['rsqlist_lin_model'], sigma10_fits['rsqlist_lin_model'],
-        stochbin_fits['pooled_rsq_lin'], sigma10_fits['pooled_rsq_lin'],
-        stochbin_fits['pooled_rsq_lin_model'], sigma10_fits['pooled_rsq_lin_model'],
-        stochbin_fits['blist_lin'], sigma10_fits['blist_lin'],
-        stochbin_fits['a_glob_lin'], stochbin_fits['b_glob_lin'],
-        sigma10_fits['a_glob_lin'], sigma10_fits['b_glob_lin'],
-        bernoulli_fits['params'], bernoulli_relu_fits['params'],
-        gaussian_fits['params'], gaussian_relu_fits['params'],
-        bernoulli_fits['x_fit'], bernoulli_fits['y_fit'],
-        bernoulli_relu_fits['x_fit'], bernoulli_relu_fits['y_fit'],
-        gaussian_fits['x_fit'], gaussian_fits['y_fit'],
-        gaussian_relu_fits['x_fit'], gaussian_relu_fits['y_fit'],
-        bernoulli_fits['x_pooled'], bernoulli_fits['y_pooled'],
-        bernoulli_relu_fits['x_pooled'], bernoulli_relu_fits['y_pooled'],
-        gaussian_fits['x_pooled'], gaussian_fits['y_pooled'],
-        gaussian_relu_fits['x_pooled'], gaussian_relu_fits['y_pooled'],
-        ve_thresh=0.1,
-        neuron_idx=2,
-        savefig=True
-    )
-    
-    print("\n✓ Figure 1 saved as 'figure1.png'")
-    print()
-    print("=" * 80)
-    print("WORKFLOW COMPLETE!")
-    print("=" * 80)
-    
-    return fig
-
 
 def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
                  gnoise_mean, gnoise_var, bnoise_mean, bnoise_var,
                  fg_mean_relu, fg_var_relu, fb_mean_relu, fb_var_relu,
-                 stochbin_rsqlist_lin, sigma10_rsqlist_lin,
-                 stochbin_rsqlist_lin_model, sigma10_rsqlist_lin_model,
-                 pooled_stochbin_lin, pooled_sigma10_lin,
-                 pooled_stochbin_lin_model, pooled_sigma10_lin_model,
-                 stochbin_blist_lin, sigma10_blist_lin,
-                 a_glob_st_lin, b_glob_st_lin, a_glob_sg_lin, b_glob_sg_lin,
-                 params_b_pixel, params_br_pixel, params_g_pixel, params_gr_pixel,
-                 x_fit_b, y_fit_b, x_fit_br, y_fit_br,
-                 x_fit_g, y_fit_g, x_fit_gr, y_fit_gr,
-                 x_pooled_b, y_pooled_b, x_pooled_br, y_pooled_br,
-                 x_pooled_g, y_pooled_g, x_pooled_gr, y_pooled_gr,
                  ve_thresh=0.1, neuron_idx=2, savefig=False):
     """
     Create Figure 1 with all subpanels.
     
     Parameters:
     -----------
-    All neuron-level and pixel-level statistics and fits
+    stochbin_meanv1 : ndarray
+        Mean spike counts for stochastic binary noise (neuron-level), shape (num_images, num_neurons)
+    stochbin_varv1 : ndarray
+        Variance in spike counts for stochastic binary noise (neuron-level), shape (num_images, num_neurons)
+    sigma10_meanv1 : ndarray
+        Mean spike counts for Gaussian noise (neuron-level), shape (num_images, num_neurons)
+    sigma10_varv1 : ndarray
+        Variance in spike counts for Gaussian noise (neuron-level), shape (num_images, num_neurons)
+    gnoise_mean : ndarray
+        Mean pixel values for Gaussian noise (pixel-level)
+    gnoise_var : ndarray
+        Variance in pixel values for Gaussian noise (pixel-level)
+    bnoise_mean : ndarray
+        Mean pixel values for Bernoulli noise (pixel-level)
+    bnoise_var : ndarray
+        Variance in pixel values for Bernoulli noise (pixel-level)
+    fg_mean_relu : ndarray
+        Mean pixel values for Gaussian noise with ReLU (pixel-level)
+    fg_var_relu : ndarray
+        Variance in pixel values for Gaussian noise with ReLU (pixel-level)
+    fb_mean_relu : ndarray
+        Mean pixel values for Bernoulli noise with ReLU (pixel-level)
+    fb_var_relu : ndarray
+        Variance in pixel values for Bernoulli noise with ReLU (pixel-level)
     ve_thresh : float, default=0.1
         Variance explained threshold
     neuron_idx : int, default=2
         Index of neuron to highlight (Neuron 3 = index 2)
+    savefig : bool, default=False
+        Whether to save the figure as 'figure1.png'
     """
+    # Step 1: Compute all neuron-level fits
+    print("  Computing neuron-level fits...")
+
+    stochbin_fits = fit_neuron_data(
+        stochbin_meanv1, stochbin_varv1,
+        a_initial=2.5e-3, b_initial=2.23
+    )
+    sigma10_fits = fit_neuron_data(
+        sigma10_meanv1, sigma10_varv1,
+        a_initial=2.2e-4, b_initial=2.24
+    )
+    
+    # Extract fit results
+    stochbin_rsqlist_lin = stochbin_fits['rsqlist_lin']
+    sigma10_rsqlist_lin = sigma10_fits['rsqlist_lin']
+    stochbin_rsqlist_lin_model = stochbin_fits['rsqlist_lin_model']
+    sigma10_rsqlist_lin_model = sigma10_fits['rsqlist_lin_model']
+    pooled_stochbin_lin = stochbin_fits['pooled_rsq_lin']
+    pooled_sigma10_lin = sigma10_fits['pooled_rsq_lin']
+    pooled_stochbin_lin_model = stochbin_fits['pooled_rsq_lin_model']
+    pooled_sigma10_lin_model = sigma10_fits['pooled_rsq_lin_model']
+    stochbin_blist_lin = stochbin_fits['blist_lin']
+    sigma10_blist_lin = sigma10_fits['blist_lin']
+    a_glob_st_lin = stochbin_fits['a_glob_lin']
+    b_glob_st_lin = stochbin_fits['b_glob_lin']
+    a_glob_sg_lin = sigma10_fits['a_glob_lin']
+    b_glob_sg_lin = sigma10_fits['b_glob_lin']
+    
+    # Step 2: Compute all pixel-level fits
+    print("  Computing pixel-level fits...")
+    bernoulli_fits = fit_pixel_data(
+        bnoise_mean, bnoise_var,
+        a_glob_st_lin, b_glob_st_lin
+    )
+    bernoulli_relu_fits = fit_pixel_data(
+        fb_mean_relu, fb_var_relu,
+        a_glob_st_lin, b_glob_st_lin
+    )
+    gaussian_fits = fit_pixel_data(
+        gnoise_mean, gnoise_var,
+        a_glob_sg_lin, b_glob_sg_lin
+    )
+    gaussian_relu_fits = fit_pixel_data(
+        fg_mean_relu, fg_var_relu,
+        a_glob_sg_lin, b_glob_sg_lin
+    )
+    
+    # Extract pixel fit results
+    params_b_pixel = bernoulli_fits['params']
+    params_br_pixel = bernoulli_relu_fits['params']
+    params_g_pixel = gaussian_fits['params']
+    params_gr_pixel = gaussian_relu_fits['params']
+    x_fit_b, y_fit_b = bernoulli_fits['x_fit'], bernoulli_fits['y_fit']
+    x_fit_br, y_fit_br = bernoulli_relu_fits['x_fit'], bernoulli_relu_fits['y_fit']
+    x_fit_g, y_fit_g = gaussian_fits['x_fit'], gaussian_fits['y_fit']
+    x_fit_gr, y_fit_gr = gaussian_relu_fits['x_fit'], gaussian_relu_fits['y_fit']
+    x_pooled_b, y_pooled_b = bernoulli_fits['x_pooled'], bernoulli_fits['y_pooled']
+    x_pooled_br, y_pooled_br = bernoulli_relu_fits['x_pooled'], bernoulli_relu_fits['y_pooled']
+    x_pooled_g, y_pooled_g = gaussian_fits['x_pooled'], gaussian_fits['y_pooled']
+    x_pooled_gr, y_pooled_gr = gaussian_relu_fits['x_pooled'], gaussian_relu_fits['y_pooled']
+    
     # Helper functions
     def safe_mask(x, y):
         """Return masked x and y arrays for valid (positive, finite) values"""
@@ -846,7 +789,3 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
         plt.close()
     else: plt.show()
     return fig
-
-
-if __name__ == "__main__":
-    main()

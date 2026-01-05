@@ -1,6 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
+from figure1_utils import figure1_collection
+from plot_figure1 import plot_figure1
 
 path = "predictions/final predictions"
 
@@ -30,35 +31,65 @@ gaus_predictions = np.concatenate(gaus_arrays, axis=0) if gaus_arrays else np.ar
 print(f"bern shape: {bern_predictions.shape}\n"
     f"gaus shape: {gaus_predictions.shape}")
 
-# Calculate mean and variance on axis 1
-bern_mean = np.mean(bern_predictions, axis=1)
-bern_var = np.var(bern_predictions, axis=1)
-gaus_mean = np.mean(gaus_predictions, axis=1)
-gaus_var = np.var(gaus_predictions, axis=1)
+# ==============================================================================
+# FIGURE 1 GENERATION - COMPLETE WORKFLOW
+# ==============================================================================
 
-# Create figure with 2 subplots
-fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+print("=" * 80)
+print("FIGURE 1 GENERATION - COMPLETE WORKFLOW")
+print("=" * 80)
+print()
 
-# Regular plot
-axes[0].scatter(bern_mean, bern_var, alpha=0.3, label='Bern', marker=".", color = "tab:orange")
-axes[0].scatter(gaus_mean, gaus_var, alpha=0.3, label='Gaus', marker=".", color = "tab:blue")
-axes[0].set_xlabel('Mean')
-axes[0].set_ylabel('Variance')
-axes[0].set_title('Mean vs Variance (Regular Scale)')
-axes[0].legend()
-axes[0].grid(True, alpha=0.3)
+# Step 1: Calculate neuron-level statistics (mean and variance across noise seeds - axis 1)
+print("Step 1: Calculating neuron-level statistics...")
+stochbin_meanv1 = np.mean(bern_predictions, axis=1)  # Shape: (num_images, num_neurons)
+stochbin_varv1 = np.var(bern_predictions, axis=1)    # Shape: (num_images, num_neurons)
+sigma10_meanv1 = np.mean(gaus_predictions, axis=1)   # Shape: (num_images, num_neurons)
+sigma10_varv1 = np.var(gaus_predictions, axis=1)     # Shape: (num_images, num_neurons)
 
-# Log-log plot
-axes[1].scatter(bern_mean, bern_var, alpha=0.3, label='Bern', marker=".", color = "tab:orange")
-axes[1].scatter(gaus_mean, gaus_var, alpha=0.3, label='Gaus', marker=".", color = "tab:blue")
-axes[1].set_xlabel('Mean')
-axes[1].set_ylabel('Variance')
-axes[1].set_title('Mean vs Variance (Log-Log Scale)')
-axes[1].set_xscale('log')
-axes[1].set_yscale('log')
-axes[1].legend()
-axes[1].grid(True, alpha=0.3)
+print(f"\nNeuron data shapes:")
+print(f"  Stochbin mean: {stochbin_meanv1.shape}")
+print(f"  Sigma10 mean: {sigma10_meanv1.shape}")
+print()
 
-plt.tight_layout()
-plt.show()
+# Step 2: Calculate sums for pixel-space statistics
+print("Step 2: Collecting pixel-space statistics...")
+stochbin_sum = np.sum(bern_predictions, axis=1)  # Shape: (num_images, num_neurons)
+sigma10_sum = np.sum(gaus_predictions, axis=1)   # Shape: (num_images, num_neurons)
 
+pixel_data = figure1_collection(
+    stochbin_sum=stochbin_sum,
+    sigma10_sum=sigma10_sum,
+    num_imgs=100,
+    num_noise_seeds=10,
+    num_frames=15,
+    img_height=144,
+    img_width=256,
+    relu_threshold=128,
+    image_stack_path = "image_stacks/final_image_stack/image_stack(12-24-2025).npy"
+)
+print()
+
+# Step 3: Generate the figure (fits computed internally)
+print("Step 3: Generating Figure 1...")
+print("  (This may take a moment...)")
+
+fig = plot_figure1(
+    stochbin_meanv1, stochbin_varv1,
+    sigma10_meanv1, sigma10_varv1,
+    pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
+    pixel_data['bnoise_mean'], pixel_data['bnoise_var'],
+    pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
+    pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
+    ve_thresh=0.1,
+    neuron_idx=2,
+    savefig=True
+)
+
+print("\n✓ Figure 1 generated successfully!")
+print()
+print("=" * 80)
+print("WORKFLOW COMPLETE!")
+print("=" * 80)
+
+ 
