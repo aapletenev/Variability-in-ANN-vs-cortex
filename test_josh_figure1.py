@@ -84,7 +84,7 @@ fig = plot_figure1(
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
     ve_thresh=0.1,
     neuron_idx=2,
-    savefig=False
+    savefig=True
 )
 
 print("\n✓ Figure 1 generated successfully!")
