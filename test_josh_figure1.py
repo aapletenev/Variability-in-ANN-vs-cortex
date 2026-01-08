@@ -3,7 +3,8 @@ from pathlib import Path
 from figure1_utils import figure1_collection
 from plot_figure1 import plot_figure1
 
-path = "predictions/final predictions"
+# Path where predictions are stored
+path = "predictions/test_predictions(1-8-26)"
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -60,8 +61,8 @@ sigma10_sum = np.sum(gaus_predictions, axis=1)   # Shape: (num_images, num_neuro
 pixel_data = figure1_collection(
     stochbin_sum=stochbin_sum,
     sigma10_sum=sigma10_sum,
-    num_imgs=100,
-    num_noise_seeds=10,
+    num_imgs=5,
+    num_noise_seeds=100,
     num_frames=15,
     img_height=144,
     img_width=256,
@@ -83,7 +84,7 @@ fig = plot_figure1(
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
     ve_thresh=0.1,
     neuron_idx=2,
-    savefig=True
+    savefig=False
 )
 
 print("\n✓ Figure 1 generated successfully!")
