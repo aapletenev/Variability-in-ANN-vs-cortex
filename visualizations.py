@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import MultipleLocator
 from scipy.stats import shapiro
+from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from processing import remove_x
@@ -757,4 +758,92 @@ def boxplots(means, vars, main_title: str, savefig: bool = False):
         path_name = f'{main_title}_{file_date}.pdf'
         plt.savefig(os.path.join(os.getcwd(), 'plots', path_name))
     else:
+        plt.show()
+
+def smooth_func(x, a, b): # used for regression in lineplots_4x4
+
+    """    
+    Parameters
+    ----------
+    x : float or np.ndarray
+        Input value(s) along the x-axis
+    a : float
+        Scaling parameter
+    b : float
+        Growth rate parameter
+    
+    Returns
+    -------
+    float or np.ndarray
+        Function value(s) f(x)
+    """
+    return a * (x**b)
+#---change function here?---
+def lineplots_4x4(main_title, mean_masked, var_masked, bern: bool, neurons = [i for i in range(16)], savefig = False, logspace = False):
+    """
+    Parameters
+    ----------
+    main_title: str
+        title for plot
+    mean_masked: np.array
+        mean array of data
+    var_masked: np.array
+        array of variance data
+    neurons: list (ints)
+        list of neurons to plot, defualts to first 16
+    savefig: bool 
+        whether or not to save figure to computer
+    Returns
+    -------
+    plt.show()
+        scatter plots with regression shown
+    """
+    fig, axes = plt.subplots(4, 4, figsize=(10, 8), sharex=False, sharey=False)
+    fig.text(0.5, 1.04, main_title, ha='center', va='top', fontsize=14, fontweight = 'bold', bbox=dict(facecolor='white'))
+
+    for id, neuron in enumerate(neurons):
+        i, j = divmod(id, 4)
+        ax = axes[i, j]
+        
+        ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'black', alpha = 0.5, marker = '.', label = 'predicted response (gray frames)')
+        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'tab:orange' if bern else 'tab:blue', 
+                   alpha = 0.3, marker = '.', label = 'predicted response (imagenet)')
+
+        # regression
+        mask = ~np.isnan(mean_masked[..., neuron])
+        x_nonan = mean_masked[..., neuron][mask]
+        y_nonan = var_masked[..., neuron][mask]
+
+        params, covariance = curve_fit(smooth_func, x_nonan, y_nonan, maxfev = 1_000_000, p0 = [1, .001])
+        y_pred = smooth_func(np.linspace(0, np.max(x_nonan), 100), params[0], params[1])
+        ax.plot(np.linspace(0, np.max(x_nonan), 100), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
+        
+        ax.text(0.01, 0.99, f'neuron: {neuron+1}\na: {params[0]:.3f}\nb: {params[1]:.3f}', verticalalignment = 'top', horizontalalignment = 'left', 
+                transform = ax.transAxes)
+        if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
+        if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
+
+        #ax.set_xlim(0, min(np.max(mean_masked)/3, 200)) # how to handle outliers
+
+        if logspace: 
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 100)
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.02, 1.08), ncol=1)    
+    plt.tight_layout()
+    if savefig: 
+        try:
+            date = datetime.now()
+            file_date = f'({str(date.month)}-{str(date.day)}-{str(date.year)})'
+            path_name = f'{main_title}_{file_date}.pdf'
+            plt.savefig(os.path.join(os.getcwd(), f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', path_name), 
+                        bbox_inches = 'tight', pad_inches = 0.3)
+        except FileNotFoundError:
+            os.makedirs(f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', exist_ok = True)
+            plt.savefig(os.path.join(os.getcwd(), f'plots//({str(date.month)}-{str(date.day)}-{str(date.year)})', path_name),
+                        bbox_inches = 'tight', pad_inches = 0.3)
+            plt.close()
+    else: 
         plt.show()

@@ -12,6 +12,8 @@ print(f"ids type: {type(ids)}, with shape {ids.shape}")  # ids are dataframe wit
 ##adding this to inspect their input data
 #print(ids.head())
 
+
+
 # example 3-second video (3 x 30 frames @ 30 FPS, 144 height, 256 width)
 frames = concatenate([
     full(shape=[30, 144, 256], dtype="uint8", fill_value=0),  # 1 second of black
