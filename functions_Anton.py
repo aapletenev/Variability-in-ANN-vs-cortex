@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import linalg
+from typing import Optional, Union, Tuple
 
 #####functions
 #function to return neurons of specific area
@@ -259,41 +260,34 @@ def geometric_mean_pairwise(means):
     return np.sqrt(pairwise_products)
 
 
-
-
-
 def plot_dual_axis_boxplot(ax, data1, data2,
                            label1='Bernoulli', label2='Gaussian',
                            color1='tab:orange', color2='tab:blue',
                            title='Fano Factor Comparison',
                            xlabel='Frame', ylabel_suffix='Fano Factor',
-                           show_outliers=False, ylim = None):
+                           show_outliers=False, whisk=(0.25, 0.75),
+                           ylim=None, xline=None, scale=1.0):  # <--- Added scale
     """
     Plots two datasets on a specific axis (ax) using dual Y-axes.
     Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
     """
 
+    # --- Font Scaling ---
+    s_title = 14 * scale
+    s_label = 12 * scale
+    s_tick = 10 * scale
+
     # --- HELPER: Extract and Clean Data ---
     def prepare_data(data):
-        """
-        Converts 2D or 3D arrays into a list of 1D arrays (one per frame).
-        Removes NaNs.
-        """
-
-        # Inner helper to flatten and clean NaNs
         def clean_nans(arr):
             flat = arr.flatten()
             return flat[~np.isnan(flat)]
 
         if data.ndim == 3:
-            # ASSUMPTION: Shape is (Samples, Frames, Neurons)
-            # We iterate over axis 1 (Frames)
             n_frames = data.shape[1]
             return [clean_nans(data[:, i, :]) for i in range(n_frames)]
 
         elif data.ndim == 2:
-            # ASSUMPTION: Shape is (Frames, Neurons)
-            # We iterate over axis 0 (Frames)
             n_frames = data.shape[0]
             return [clean_nans(data[i, :]) for i in range(n_frames)]
 
@@ -304,7 +298,7 @@ def plot_dual_axis_boxplot(ax, data1, data2,
     plot_data1 = prepare_data(data1)
     plot_data2 = prepare_data(data2)
 
-    # Ensure both datasets have the same number of frames for plotting
+    # Ensure both datasets have the same number of frames
     num_frames = len(plot_data1)
     if len(plot_data2) != num_frames:
         print(
@@ -318,14 +312,14 @@ def plot_dual_axis_boxplot(ax, data1, data2,
     pos1 = np.arange(num_frames) - 0.15
     pos2 = np.arange(num_frames) + 0.15
 
-    # 4. Plot Boxplots with 95% Whiskers
+    # 4. Plot Boxplots
     box1 = ax1.boxplot(plot_data1, positions=pos1, widths=0.3,
                        patch_artist=True, showfliers=show_outliers,
-                       whis=(2.5, 97.5))
+                       whis=whisk)
 
     box2 = ax2.boxplot(plot_data2, positions=pos2, widths=0.3,
                        patch_artist=True, showfliers=show_outliers,
-                       whis=(2.5, 97.5))
+                       whis=whisk)
 
     # --- STYLING ---
     def style_boxplot(box_handle, fill_color):
@@ -338,34 +332,33 @@ def plot_dual_axis_boxplot(ax, data1, data2,
     style_boxplot(box2, color2)
 
     # --- AXIS FORMATTING ---
-    ax1.set_xlabel(xlabel)
+    ax1.set_xlabel(xlabel, fontsize=s_label)
     ax1.set_xticks(np.arange(num_frames))
-    ax1.set_xticklabels(np.arange(1, num_frames + 1))
-    ax1.set_title(title)
+    ax1.set_xticklabels(np.arange(1, num_frames + 1), fontsize=s_tick)
+    ax1.set_title(title, fontsize=s_title)
 
     # Left Axis (Dataset 1)
-    ax1.set_ylabel(f'{ylabel_suffix} ({label1})', color=color1, fontweight='bold')
-    ax1.tick_params(axis='y', labelcolor=color1)
+    ax1.set_ylabel(f'{ylabel_suffix} ({label1})', color=color1, fontweight='bold', fontsize=s_label)
+    ax1.tick_params(axis='y', labelcolor=color1, labelsize=s_tick)
     ax1.spines['left'].set_color(color1)
     ax1.spines['left'].set_linewidth(2)
     ax1.spines['right'].set_visible(False)
 
     # Right Axis (Dataset 2)
-    ax2.set_ylabel(f'{ylabel_suffix} ({label2})', color=color2, fontweight='bold')
-    ax2.tick_params(axis='y', labelcolor=color2)
+    ax2.set_ylabel(f'{ylabel_suffix} ({label2})', color=color2, fontweight='bold', fontsize=s_label)
+    ax2.tick_params(axis='y', labelcolor=color2, labelsize=s_tick)
     ax2.spines['right'].set_color(color2)
     ax2.spines['right'].set_linewidth(2)
     ax2.spines['left'].set_visible(False)
 
     if ylim is not None:
-        ax1.set_ylim(bottom = ylim)
-        ax2.set_ylim(bottom = ylim)
+        ax1.set_ylim(bottom=ylim)
+        ax2.set_ylim(bottom=ylim)
+    if xline is not None:
+        ax1.axhline(xline, color='lightgray', linestyle='dashed', linewidth=1)
+        ax2.axhline(xline, color='lightgray', linestyle='dashed', linewidth=1)
 
     return ax1, ax2
-
-
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 def plot_single_axis_boxplot(ax, data1, data2,
@@ -374,16 +367,18 @@ def plot_single_axis_boxplot(ax, data1, data2,
                              title='Fano Factor Comparison',
                              xlabel='Frame', ylabel_suffix='Fano Factor',
                              show_outliers=False, ylim=None,
-                             legend_loc='upper right', yline = None):  # <--- NEW PARAMETER
+                             whisk=(2.5, 97.5),
+                             legend_loc='upper right', xline=None, scale=1.0):  # <--- Added scale
     """
     Plots two datasets on the SAME axis (ax) side-by-side.
-    Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
-
-    Parameters:
-    -----------
-    legend_loc : str or int
-        Position of the legend (e.g., 'upper right', 'upper left', 'best', etc.)
+    Handles the case where data2 is None.
     """
+
+    # --- Font Scaling ---
+    s_title = 14 * scale
+    s_label = 12 * scale
+    s_tick = 10 * scale
+    s_legend = 10 * scale  # Legend font size
 
     # --- HELPER: Extract and Clean Data ---
     def prepare_data(data):
@@ -402,25 +397,43 @@ def plot_single_axis_boxplot(ax, data1, data2,
 
     # 1. Prepare Data Lists
     plot_data1 = prepare_data(data1)
-    plot_data2 = prepare_data(data2)
-
     num_frames = len(plot_data1)
-    if len(plot_data2) != num_frames:
-        print(
-            f"Warning: Datasets have different frame counts ({len(plot_data1)} vs {len(plot_data2)}). Using {num_frames}.")
 
-    # 2. Define Positions
-    pos1 = np.arange(num_frames) - 0.15
-    pos2 = np.arange(num_frames) + 0.15
+    # 2. Determine Logic based on data2 presence
+    if data2 is not None:
+        # --- DUAL PLOT MODE ---
+        plot_data2 = prepare_data(data2)
 
-    # 3. Plot Boxplots
-    box1 = ax.boxplot(plot_data1, positions=pos1, widths=0.3,
-                      patch_artist=True, showfliers=show_outliers,
-                      whis=(2.5, 97.5))
+        # Shift positions side-by-side
+        pos1 = np.arange(num_frames) - 0.15
+        pos2 = np.arange(num_frames) + 0.15
 
-    box2 = ax.boxplot(plot_data2, positions=pos2, widths=0.3,
-                      patch_artist=True, showfliers=show_outliers,
-                      whis=(2.5, 97.5))
+        # Plot Both
+        box1 = ax.boxplot(plot_data1, positions=pos1, widths=0.3,
+                          patch_artist=True, showfliers=show_outliers,
+                          whis=whisk)
+
+        box2 = ax.boxplot(plot_data2, positions=pos2, widths=0.3,
+                          patch_artist=True, showfliers=show_outliers,
+                          whis=whisk)
+
+        legend_handles = [box1["boxes"][0], box2["boxes"][0]]
+        legend_labels = [label1, label2]
+
+    else:
+        # --- SINGLE PLOT MODE ---
+        # Center positions
+        pos1 = np.arange(num_frames)
+
+        # Plot Only First
+        box1 = ax.boxplot(plot_data1, positions=pos1, widths=0.4,
+                          patch_artist=True, showfliers=show_outliers,
+                          whis=whisk)
+
+        box2 = None
+
+        legend_handles = [box1["boxes"][0]]
+        legend_labels = [label1]
 
     # --- STYLING ---
     def style_boxplot(box_handle, fill_color):
@@ -430,28 +443,29 @@ def plot_single_axis_boxplot(ax, data1, data2,
         plt.setp(box_handle["medians"], color="black", linewidth=1.5)
 
     style_boxplot(box1, color1)
-    style_boxplot(box2, color2)
+
+    if data2 is not None:
+        style_boxplot(box2, color2)
 
     # --- AXIS FORMATTING ---
-    ax.set_xlabel(xlabel)
+    ax.set_xlabel(xlabel, fontsize=s_label)
     ax.set_xticks(np.arange(num_frames))
-    ax.set_xticklabels(np.arange(1, num_frames + 1))
-    ax.set_title(title)
+    ax.set_xticklabels(np.arange(1, num_frames + 1), fontsize=s_tick)
+    ax.set_title(title, fontsize=s_title)
+    ax.set_ylabel(ylabel_suffix, fontweight='bold', fontsize=s_label)
 
-    ax.set_ylabel(ylabel_suffix, fontweight='bold')
+    # Scale tick params for y-axis as well
+    ax.tick_params(axis='y', labelsize=s_tick)
 
-    # --- LEGEND (Updated) ---
-    ax.legend([box1["boxes"][0], box2["boxes"][0]],
-              [label1, label2],
-              loc=legend_loc)  # <--- USED HERE
+    # Apply Legend with Scaled Font
+    ax.legend(legend_handles, legend_labels, loc=legend_loc, fontsize=s_legend)
 
     if ylim is not None:
         ax.set_ylim(bottom=ylim)
-    if yline is not None:
-        ax.axhline(yline, color='lightgray', linestyle='dashed', linewidth=1)
+    if xline is not None:
+        ax.axvline(xline, color='lightgray', linestyle='dashed', linewidth=1)
+
     return ax
-
-
 
 
 #fast function to compute slopes using vectorized operations
@@ -748,114 +762,179 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
     return I_bc, var_I_bc
 
 
-def compute_fisher_info_all(data_tensor, n_image_pairs=10, n_repeats=50, n_list=None, d_theta=1.0, image_pairs=None):
+def compute_pixel_fisher_info(image_stack, d_theta=1.0):
     """
-    Computes Fisher Information scaling with hierarchical sampling.
-    Can accept a fixed list of image pairs or generate them randomly.
+    Computes Unbiased Pixel Fisher Information using Split-Half Cross-Validation.
+
+    This method has ZERO bias by construction, because noise in Split A
+    is uncorrelated with noise in Split B.
+
+    Parameters
+    ----------
+    image_stack : np.ndarray
+        Shape (2, n_trials, n_pixels).
+
+    Returns
+    -------
+    I_cv : float
+        The unbiased Fisher Information estimate.
+    """
+    n_conds, n_trials, n_pixels = image_stack.shape
+
+    # 1. Split Data into Halves (Train / Test)
+    # We use integer division to ensure equal splits
+    mid = n_trials // 2
+
+    # Split A
+    imgs_A = image_stack[:, :mid, :]
+    mu1_A = np.mean(imgs_A[0], axis=0)
+    mu2_A = np.mean(imgs_A[1], axis=0)
+    diff_A = mu1_A - mu2_A
+
+    # Split B
+    imgs_B = image_stack[:, mid:2 * mid, :]
+    mu1_B = np.mean(imgs_B[0], axis=0)
+    mu2_B = np.mean(imgs_B[1], axis=0)
+    diff_B = mu1_B - mu2_B
+
+    # 2. Compute Signal Energy via Dot Product (Cross-Validated)
+    # E[diff_A . diff_B] = True_Signal^2 + 0 (Noise cancels out)
+    signal_energy = np.dot(diff_A, diff_B)
+
+    # 3. Normalize by Variance (using all data for better stability)
+    var1 = np.var(image_stack[0], axis=0, ddof=1)
+    var2 = np.var(image_stack[1], axis=0, ddof=1)
+    sigma_sq_pooled = (np.mean(var1) + np.mean(var2)) / 2.0
+
+    # Fisher Info = Signal / (Variance * dTheta^2)
+    I_cv = signal_energy / (sigma_sq_pooled * d_theta ** 2)
+
+    return I_cv
+
+
+def compute_fisher_info_all(data_tensor, n_image_pairs=10, n_repeats=50, n_list=None,
+                            d_theta=1.0, image_pairs=None, mode='neurons'):
+    """
+    Computes Fisher Information.
+
+    Modes
+    -----
+    'neurons': Hierarchical scaling (bootstraps neurons).
+    'pixels' : High-dimensional Ideal Observer (no subsampling).
 
     Parameters
     ----------
     data_tensor : np.ndarray
-        Shape (n_images, n_trials, n_total_neurons).
+        Shape (n_images, n_trials, n_features).
+        Features are Neurons (if mode='neurons') or Pixels (if mode='pixels').
     n_image_pairs : int
-        Number of random image pairs to generate (ignored if image_pairs is not None).
+        Number of random image pairs (ignored if image_pairs is provided).
     n_repeats : int
-        Number of random neuron draws for each N (per image pair).
+        Number of subsamples per N (only for mode='neurons').
     n_list : list, optional
-        List of population sizes (N) to test.
+        List of population sizes N (only for mode='neurons').
     d_theta : float
         Stimulus difference (default 1.0).
-    image_pairs : list or np.ndarray, optional
-        A list of specific image pairs to use, e.g., [[0, 5], [10, 2]].
-        If provided, n_image_pairs is ignored.
+    image_pairs : list, optional
+        Specific pairs to test.
+    mode : str
+        'neurons' or 'pixels'.
 
     Returns
     -------
-    FI_real : np.ndarray
-        Shape (n_pairs, n_repeats, len(n_list))
-    FI_shuf : np.ndarray
-        Shape (n_pairs, n_repeats, len(n_list))
-    n_list : np.ndarray
-        The list of N values used.
-    used_image_pairs : np.ndarray
-        The actual array of image pairs used (Shape: n_pairs x 2).
+    If mode='neurons':
+        (FI_real, FI_shuf, n_list, used_image_pairs)
+    If mode='pixels':
+        (FI_pixels, None, None, used_image_pairs)
     """
 
-    # 1. Setup N list
-    if n_list is None:
-        n_list = np.linspace(2, 50, 10, dtype=int)
-        n_list = np.unique(n_list)
+    # 1. Setup Image Pairs
+    total_images = data_tensor.shape[0]
 
-    n_sizes = len(n_list)
-    total_images, total_trials, total_neurons = data_tensor.shape
-
-    # 2. Setup Image Pairs
     if image_pairs is not None:
-        # Case A: Use provided pairs
         used_image_pairs = np.array(image_pairs, dtype=int)
         actual_n_pairs = len(used_image_pairs)
         print(f"Using {actual_n_pairs} pre-defined image pairs.")
     else:
-        # Case B: Generate random pairs
         actual_n_pairs = n_image_pairs
         used_image_pairs = np.zeros((actual_n_pairs, 2), dtype=int)
         for k in range(actual_n_pairs):
             used_image_pairs[k] = np.random.choice(total_images, 2, replace=False)
         print(f"Generated {actual_n_pairs} random image pairs.")
 
-    # 3. Pre-allocate Output Arrays
-    FI_real = np.zeros((actual_n_pairs, n_repeats, n_sizes))
-    FI_shuf = np.zeros((actual_n_pairs, n_repeats, n_sizes))
+    print(f"Starting analysis (Mode: {mode})...")
 
-    print(f"Starting hierarchical analysis...")
-    print(f"For each pair, sampling {n_repeats} repeats for N in {n_list}")
+    # --- MODE: PIXELS ---
+    if mode == 'pixels':
+        # Output shape: (n_pairs,)
+        FI_pixels = np.zeros(actual_n_pairs)
 
-    # --- OUTER LOOP: Image Pairs ---
-    for p in range(actual_n_pairs):
+        for p in range(actual_n_pairs):
+            img_indices = used_image_pairs[p]
 
-        # Get the specific pair for this iteration
-        img_indices = used_image_pairs[p]
+            # Slice pair: (2, n_trials, n_pixels)
+            current_pair_data = data_tensor[img_indices]
 
-        # Optimization: Slice images ONCE per pair
-        current_pair_data = data_tensor[img_indices].copy()
+            # Compute Ideal Observer FI
+            FI_pixels[p] = compute_pixel_fisher_info(current_pair_data, d_theta=d_theta)
 
-        # --- MIDDLE LOOP: Population Sizes (N) ---
-        for i, N in enumerate(n_list):
+            if (p + 1) % 10 == 0:
+                print(f"Finished Pair {p + 1}/{actual_n_pairs}")
 
-            # --- INNER LOOP: Neuron Repeats ---
-            for r in range(n_repeats):
-                # Randomly select N neurons
-                neuron_indices = np.random.choice(total_neurons, N, replace=False)
+        return FI_pixels, None, None, used_image_pairs
 
-                # Slice specific neurons
-                sub_data = current_pair_data[:, :, neuron_indices]
+    # --- MODE: NEURONS ---
+    elif mode == 'neurons':
+        # Setup N list
+        total_neurons = data_tensor.shape[2]
+        if n_list is None:
+            n_list = np.linspace(2, 50, 10, dtype=int)
+            n_list = np.unique(n_list)
+        n_sizes = len(n_list)
 
-                # Compute Real FI
-                val_real, _ = compute_fisher_info(
-                    sub_data, d_theta=d_theta, method='cholesky', shuffle=False
-                )
+        FI_real = np.zeros((actual_n_pairs, n_repeats, n_sizes))
+        FI_shuf = np.zeros((actual_n_pairs, n_repeats, n_sizes))
 
-                # Compute Shuffled FI
-                val_shuf, _ = compute_fisher_info(
-                    sub_data, d_theta=d_theta, method='cholesky', shuffle=True
-                )
+        print(f"For each pair, sampling {n_repeats} repeats for N in {n_list}")
 
-                # Store
-                FI_real[p, r, i] = val_real
-                FI_shuf[p, r, i] = val_shuf
+        for p in range(actual_n_pairs):
+            img_indices = used_image_pairs[p]
 
-        # Optional: Print progress every 10 pairs or if few pairs
-        if actual_n_pairs < 20 or (p + 1) % 10 == 0:
-            print(f"Finished Image Pair {p + 1}/{actual_n_pairs} (Indices: {img_indices})")
+            # Optimization: Copy slice once
+            current_pair_data = data_tensor[img_indices].copy()
 
-    return FI_real, FI_shuf, n_list, used_image_pairs
+            for i, N in enumerate(n_list):
+                for r in range(n_repeats):
+                    neuron_indices = np.random.choice(total_neurons, N, replace=False)
+                    sub_data = current_pair_data[:, :, neuron_indices]
+
+                    # Real FI
+                    val_real, _ = compute_fisher_info(
+                        sub_data, d_theta=d_theta, method='cholesky', shuffle=False
+                    )
+                    # Shuffled FI
+                    val_shuf, _ = compute_fisher_info(
+                        sub_data, d_theta=d_theta, method='cholesky', shuffle=True
+                    )
+
+                    FI_real[p, r, i] = val_real
+                    FI_shuf[p, r, i] = val_shuf
+
+            if actual_n_pairs < 20 or (p + 1) % 10 == 0:
+                print(f"Finished Pair {p + 1}/{actual_n_pairs} (Idx: {img_indices})")
+
+        return FI_real, FI_shuf, n_list, used_image_pairs
+
+    else:
+        raise ValueError("Mode must be 'neurons' or 'pixels'")
 
 
 def plot_scaling_metric(data, n_list, aggregation='median', title="Fisher Information Scaling",
                         ylabel="Fisher Information", color='gray', line_width=1.5,
-                        yline = None,  ylim = None, ax=None):
+                        yline=None, ylim=None, xlim = 0, FI_pixel=None, scale=1.0, ax=None):
     """
-    Plots scaling curves for multiple image pairs with simplified styling.
+    Plots scaling curves for multiple image pairs with optional Pixel Information bounds
+    and font scaling.
 
     Parameters
     ----------
@@ -871,11 +950,32 @@ def plot_scaling_metric(data, n_list, aggregation='median', title="Fisher Inform
         Label for the y-axis.
     color : str
         Color of the lines (default 'gray').
+    line_width : float
+        Width of the solid lines.
+    yline : float, optional
+        A single global horizontal reference line (e.g., 0).
+    ylim : tuple, optional
+        (ymin, ymax) limits for the y-axis.
+    FI_pixel : np.ndarray, optional
+        Array of shape (n_image_pairs,).
+        If provided, plots a dashed horizontal line for each image pair.
+    scale : float
+        Scaling factor for font sizes (default 1.0).
     ax : matplotlib.axes.Axes, optional
-        Axes object to plot on. If None, creates a new figure.
+        Axes object to plot on.
     """
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Base font sizes
+    base_label_size = 12
+    base_title_size = 14
+    base_tick_size = 10
+
+    # Calculate scaled sizes
+    label_size = base_label_size * scale
+    title_size = base_title_size * scale
+    tick_size = base_tick_size * scale
 
     # Check input shape
     if data.ndim != 3:
@@ -891,114 +991,161 @@ def plot_scaling_metric(data, n_list, aggregation='median', title="Fisher Inform
 
     n_pairs = y_values.shape[0]
 
+    # Validation for Pixel FI
+    if FI_pixel is not None:
+        if len(FI_pixel) != n_pairs:
+            print(f"Warning: FI_pixel length ({len(FI_pixel)}) does not match data pairs ({n_pairs}).")
+
     # Plot each pair
-    # We use alpha=0.5 to make overlapping lines visible but not overwhelming
     for i in range(n_pairs):
+        # 1. Neural Scaling (Solid Line)
         ax.plot(n_list, y_values[i],
                 linestyle='-',
-                linewidth=line_width,  # Thinner lines
-                marker=None,  # No points
-                color=color,  # Single parameter color
-                alpha=0.6)  # Slight transparency
+                linewidth=line_width,
+                marker=None,
+                color=color,
+                alpha=0.6)
 
-    ax.set_xlabel("Number of Neurons (N)")
-    ax.set_ylabel(ylabel)
-    ax.set_title(f"{title}\n({aggregation} over neuron samples)")
+        # 2. Pixel Limit (Dashed Line)
+        if FI_pixel is not None:
+            ax.plot(n_list, [FI_pixel[i]] * len(n_list),
+                    linestyle='--',
+                    linewidth=line_width,
+                    color=color,
+                    alpha=0.4)
 
-    # Disable grid
+    # Set Labels with scaled font sizes
+    ax.set_xlabel("Number of Neurons (N)", fontsize=label_size)
+    ax.set_ylabel(ylabel, fontsize=label_size)
+    ax.set_title(f"{title}", fontsize=title_size)
+
+    # Scale Tick Labels
+    ax.tick_params(axis='both', which='major', labelsize=tick_size)
+
+    # Clean formatting
     ax.grid(False)
+
     if yline is not None:
         ax.axhline(yline, color='black', linestyle='dashed', linewidth=1)
+
     if ylim is not None:
         ax.set_ylim(ylim)
+    if xlim is not None:
+        ax.set_xlim(left = xlim)
 
     return ax
 
 
+def stochastic_binarization_vectorized(image_stack: np.ndarray) -> np.ndarray:
+    """Vectorized Stochastic Binarization."""
+    probs = image_stack / 255.0
+    binarized = np.random.binomial(1, probs)
+    return (binarized * 255).astype('uint8')
 
 
-
-
-
-
-
-def plot_fisher_scaling(FI, FI_shuffle, N_list, color='tab:blue', ax=None, title=None):
+def generate_noise_chunk(
+        image_input: np.ndarray,
+        num_trials: int,
+        num_frames: int,
+        noise_type: str,
+        stochastic_bin_param: bool,
+        sigma: float
+) -> np.ndarray:
     """
-    Plots Fisher Information vs Number of Neurons.
+    Generates noise for a SINGLE image expanded over trials and frames.
+    Input image_input shape: (H, W)
+    Output shape: (num_trials, num_frames, H, W)
+    """
+    h, w = image_input.shape
+    full_shape = (num_trials, num_frames, h, w)
+
+    # Expand image to (Trials, Frames, H, W) for broadcasting
+    # shape (1, 1, H, W) -> broadcast to full
+    image_view = np.broadcast_to(
+        image_input[np.newaxis, np.newaxis, :, :],
+        full_shape
+    )
+
+    if stochastic_bin_param:
+        if noise_type == 'constant':
+            # 1. Generate noise for (Trials, 1, H, W)
+            # We treat the first frame as the seed for the whole trial
+            single_frame_view = image_view[:, 0:1, :, :]
+            binarized_single = stochastic_binarization_vectorized(single_frame_view)
+
+            # 2. Broadcast back to all frames (Trials, Frames, H, W)
+            return np.broadcast_to(binarized_single, full_shape).copy()
+
+        elif noise_type == 'dynamic':
+            # Generate unique noise for every frame in every trial
+            return stochastic_binarization_vectorized(image_view)
+
+    else:
+        # Gaussian Noise Logic
+        if noise_type == 'constant':
+            noise = np.random.normal(loc=0, scale=sigma, size=(num_trials, 1, h, w))
+            noise = np.broadcast_to(noise, full_shape)
+        elif noise_type == 'dynamic':
+            noise = np.random.normal(loc=0, scale=sigma, size=full_shape)
+        else:
+            # No noise
+            return image_view.copy()  # Return plain image copies
+
+        return np.clip(image_view + noise, 0, 255).astype('uint8')
+
+
+def process_images_batched(
+        images: np.ndarray,
+        num_trials: int,
+        num_frames: int,
+        noise_type: str,
+        stochastic_bin_param: bool,
+        sigma: float = 10,
+        return_sum_over_frames: bool = False
+) -> np.ndarray:
+    """
+    Main function that handles batching to prevent Memory Errors.
 
     Parameters
     ----------
-    FI : np.ndarray
-        Shape (n_repeats, n_sizes). Real Fisher Information.
-    FI_shuffle : np.ndarray
-        Shape (n_repeats, n_sizes). Shuffled Fisher Information.
-    N_list : np.ndarray
-        List of N values corresponding to the columns of FI inputs.
-    color : str
-        Color for the lines and fill area.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to plot on. If None, creates a new figure.
-    title : str, optional
-        Title for the plot.
-
-    Returns
-    -------
-    ax : matplotlib.axes.Axes
+    return_sum_over_frames : bool
+        If True, sums the frames axis immediately to save memory.
+        Output shape becomes (N, Trials, H, W) instead of (N, Trials, Frames, H, W).
     """
-    # 1. Calculate Statistics
-    # Mean
-    mean_fi = np.mean(FI, axis=0)
-    mean_shuf = np.mean(FI_shuffle, axis=0)
+    results_list = []
 
-    # 95% Interval (Percentiles of the distribution of random draws)
-    # This shows the variability due to selecting different neurons
-    ci_lower = np.percentile(FI, 2.5, axis=0)
-    ci_upper = np.percentile(FI, 97.5, axis=0)
+    # Loop over images one by one to keep RAM usage low (approx 2GB peak per iter)
+    for i in range(len(images)):
 
-    # 2. Setup Plot
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(7, 5))
+        # 1. Generate the heavy (1000, 15, H, W) array for just THIS image
+        chunk_output = generate_noise_chunk(
+            images[i],
+            num_trials,
+            num_frames,
+            noise_type,
+            stochastic_bin_param,
+            sigma
+        )
 
-    # 3. Plot Real Fisher Information (Solid Line + Shadow)
-    # We capture the line object to ensure exact color matching if 'auto' colors are used
-    line, = ax.plot(N_list, mean_fi,
-                    color=color,
-                    linestyle='-',
-                    linewidth=2,
-                    label='Real ($I_{pop}$)')
+        # 2. Aggregation Step
+        if return_sum_over_frames:
+            # Sum over axis 1 (the frames axis in the chunk: Trials, Frames, H, W)
+            # Result shape: (1000, H, W)
+            # We use float32 to prevent overflow (uint8 sums max out at 255)
+            chunk_sum = np.sum(chunk_output, axis=1, dtype=np.float32)
+            results_list.append(chunk_sum)
+        else:
+            # Keep the full 4D chunk
+            results_list.append(chunk_output)
 
-    # Use the color from the line for the fill
-    plot_color = line.get_color()
+    # 3. Stack all image results together
+    # Final Shape: (19, 1000, H, W) if summed
+    # Final Shape: (19, 1000, 15, H, W) if not summed
+    return np.stack(results_list, axis=0)
 
-    ax.fill_between(N_list, ci_lower, ci_upper,
-                    color=plot_color,
-                    alpha=0.2,
-                    edgecolor='none')  # Remove edge from shadow for cleaner look
 
-    # 4. Plot Shuffled Fisher Information (Dashed Line, No Shadow)
-    ax.plot(N_list, mean_shuf,
-            color=plot_color,
-            linestyle='--',
-            linewidth=2,
-            label='Shuffled ($I_{ind}$)')
-
-    # 5. Formatting
-    ax.set_xlabel('Number of Neurons (N)', fontsize=12)
-    ax.set_ylabel('Fisher Information ($d\'^2$)', fontsize=12)
-
-    if title:
-        ax.set_title(title, fontsize=14)
-    else:
-        ax.set_title('Population Information Scaling', fontsize=14)
-
-    ax.legend(fontsize=11, frameon=False)
-
-    # Add a grid for easier reading
-    ax.grid(True, linestyle=':', alpha=0.6)
-
-    # Despine (remove top and right borders) for scientific style
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    return ax
-
+def save_predictions(data, path, filename, dirs = ['frames', 'sum', 'mean', 'var', 'label']):
+    for dir in dirs:
+        os.makedirs(path + dir, exist_ok=True)
+    for i,dir in enumerate(dirs):
+        np.save(path + dir + '/' + filename, data[i])

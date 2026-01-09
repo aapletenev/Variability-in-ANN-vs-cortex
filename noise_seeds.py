@@ -39,7 +39,7 @@ def stochastic_binarization(image_object: np.array) -> np.array:
     np.array
         array with stochasic binarization applied to input
     """
-    image_prob = image_object / 256
+    image_prob = image_object / 255
     prob_results = np.random.binomial(1, image_prob)
     image = (prob_results * 255).astype('uint8')
     return image
