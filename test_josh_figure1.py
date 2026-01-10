@@ -4,7 +4,6 @@ from figure1_utils import figure1_collection
 from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
-#path = "predictions/test_predictions(1-8-26)"
 path = "predictions/final predictions"
 
 # Initialize empty lists to collect arrays
@@ -62,7 +61,7 @@ sigma10_sum = np.sum(gaus_predictions, axis=1)   # Shape: (num_images, num_neuro
 pixel_data = figure1_collection(
     stochbin_sum=stochbin_sum,
     sigma10_sum=sigma10_sum,
-    num_imgs=5,
+    num_imgs=500,
     num_noise_seeds=100,
     num_frames=15,
     img_height=144,
@@ -94,4 +93,3 @@ print("=" * 80)
 print("WORKFLOW COMPLETE!")
 print("=" * 80)
 
- 
