@@ -4,7 +4,8 @@ from figure1_utils import figure1_collection
 from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
-path = "predictions/test_predictions(1-8-26)"
+#path = "predictions/test_predictions(1-8-26)"
+path = "predictions/final predictions"
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -17,7 +18,7 @@ for file in Path(path).glob("*.npy"):
     parts = filename.split("_")
     
     # Load the array
-    arr = np.load(file)
+    arr = np.load(file, allow_pickle=True)
     
     # Check the first part and append to appropriate list
     if parts[0] == "bern":
