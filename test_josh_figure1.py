@@ -76,7 +76,7 @@ print()
 print("Step 3: Generating Figure 1...")
 print("  (This may take a moment...)")
 
-fig = plot_figure1(
+fig = plot_figure1("testjosh_jan9",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],

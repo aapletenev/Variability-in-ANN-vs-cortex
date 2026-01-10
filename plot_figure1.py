@@ -80,7 +80,6 @@ def fit_lin_power(x, y, a_initial=1.0, b_initial=1e-3):
         return np.nan, np.nan, np.nan
 
 
-###need to be changed so that first global parameters and then per-neuron fits are calculated with initial params based on global fit
 def fit_neuron_data(mean_data, var_data, a_initial=1.0, b_initial=1e-3):
     """
     Fit power law models to neuron-level data.
@@ -240,7 +239,7 @@ def fit_pixel_data(mean_data, var_data, a_glob=None, b_glob=None):
 # PLOTTING FUNCTION
 # ==============================================================================
 
-def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
+def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
                  gnoise_mean, gnoise_var, bnoise_mean, bnoise_var,
                  fg_mean_relu, fg_var_relu, fb_mean_relu, fb_var_relu,
                  ve_thresh=0.1, neuron_idx=2, savefig=False):
@@ -286,7 +285,7 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
     stochbin_fits = fit_neuron_data(
         stochbin_meanv1, stochbin_varv1,
         a_initial=2.5e-3, b_initial=2.23
-    ) #inital params are hardwired! need to calculated based on all neurons together
+    )
     sigma10_fits = fit_neuron_data(
         sigma10_meanv1, sigma10_varv1,
         a_initial=2.2e-4, b_initial=2.24
@@ -380,8 +379,8 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
     inner_tl = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=outer[0, 0], wspace=0.3, hspace=0.3)
     
     # Data for Neuron 3
-    xg, yg = safe_mask(sigma10_meanv1[:,neuron_idx], sigma10_varv1[:,neuron_idx])
-    xb, yb = safe_mask(stochbin_meanv1[:,neuron_idx], stochbin_varv1[:,neuron_idx])
+    xg, yg = safe_mask(sigma10_meanv1[:, neuron_idx], sigma10_varv1[:, neuron_idx])
+    xb, yb = safe_mask(stochbin_meanv1[:, neuron_idx], stochbin_varv1[:, neuron_idx])
     
     # Fits for Gaussian
     if xg.size > 1:
@@ -786,7 +785,7 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
              ha='center', va='bottom', fontsize=14, fontweight='bold', transform=fig.transFigure)
     
     if savefig: 
-        plt.savefig("figure1.png")
+        plt.savefig(f"{figure_name}.png")
         plt.close()
     else: plt.show()
     return fig
