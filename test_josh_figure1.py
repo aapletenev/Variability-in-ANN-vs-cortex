@@ -4,8 +4,8 @@ from figure1_utils import figure1_collection
 from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
-#path = "predictions/test_predictions(1-8-26)"
-path = "predictions/final predictions"
+path = "predictions/test_predictions(1-8-26)"
+#path = "predictions/final predictions"
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -18,7 +18,7 @@ for file in Path(path).glob("*.npy"):
     parts = filename.split("_")
     
     # Load the array
-    arr = np.load(file, allow_pickle=True)
+    arr = np.load(file)
     
     # Check the first part and append to appropriate list
     if parts[0] == "bern":
@@ -76,7 +76,7 @@ print()
 print("Step 3: Generating Figure 1...")
 print("  (This may take a moment...)")
 
-fig = plot_figure1("testjosh_jan9",
+fig = plot_figure1("testjosh_jan9_5",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
