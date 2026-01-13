@@ -12,6 +12,7 @@ Usage:
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
@@ -21,7 +22,7 @@ from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 
-from figure1_utils import preprocess_neuron_data, figure1_collection
+from figure1_utils import preprocess_neuron_data, figure1_collection, filter_v1_region
 
 
 # ==============================================================================
@@ -242,7 +243,7 @@ def fit_pixel_data(mean_data, var_data, a_glob=None, b_glob=None):
 def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
                  gnoise_mean, gnoise_var, bnoise_mean, bnoise_var,
                  fg_mean_relu, fg_var_relu, fb_mean_relu, fb_var_relu,
-                 ve_thresh=0.1, neuron_idx=2, savefig=False):
+                 stochbin_label=None, ve_thresh=0.1, neuron_idx=2, savefig=False, filter_v1=False):
     """
     Create Figure 1 with all subpanels.
     
@@ -272,13 +273,32 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         Mean pixel values for Bernoulli noise with ReLU (pixel-level)
     fb_var_relu : ndarray
         Variance in pixel values for Bernoulli noise with ReLU (pixel-level)
+    stochbin_label : ndarray, optional
+        Label array for stochastic binary noise (needed if filter_v1=True)
     ve_thresh : float, default=0.1
         Variance explained threshold
     neuron_idx : int, default=2
         Index of neuron to highlight (Neuron 3 = index 2)
     savefig : bool, default=False
         Whether to save the figure as 'figure1.png'
+    filter_v1 : bool, default=True
+        Whether to filter data to V1 region only
     """
+    # Apply V1 filtering if requested
+    if filter_v1:
+        if stochbin_label is None:
+            raise ValueError("stochbin_label must be provided when filter_v1=True")
+        
+        print("  Filtering V1 region...")
+        v1_filtered = filter_v1_region(
+            stochbin_meanv1, stochbin_varv1, stochbin_label,
+            sigma10_meanv1, sigma10_varv1
+        )
+        stochbin_meanv1 = v1_filtered['v1mean_stochbin']
+        stochbin_varv1 = v1_filtered['v1var_stochbin']
+        sigma10_meanv1 = v1_filtered['v1mean_sigma10']
+        sigma10_varv1 = v1_filtered['v1var_sigma10']
+    
     # Step 1: Compute all neuron-level fits
     print("  Computing neuron-level fits...")
 
