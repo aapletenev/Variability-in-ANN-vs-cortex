@@ -6,6 +6,7 @@ from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
 path = "predictions/test_predictions(1-8-26)"
+test_region = 2
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -79,14 +80,14 @@ print("  (This may take a moment...)")
 # Note: Skipping region filtering for this test since we don't have the proper label mapping
 # In production, you would load and filter region_labels_df to match the neurons in predictions
 
-fig = plot_figure1("testjosh_jan13",
+fig = plot_figure1(f"testjosh_jan13(region {test_region})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
     pixel_data['bnoise_mean'], pixel_data['bnoise_var'],
     pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
-    None, 1,  # region_labels_df=None to skip filtering
+    None, test_region,  # region_labels_df=None to skip filtering
     ve_thresh=0.1, neuron_idx=2, savefig=True
 )
 
