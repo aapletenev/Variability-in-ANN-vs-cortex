@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from figure1_utils import figure1_collection
 from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
-path = "predictions/final predictions"
-file_name = "figure1"
+path = "predictions/test_predictions(1-8-26)"
+test_region = 2
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -62,7 +63,7 @@ sigma10_sum = np.sum(gaus_predictions, axis=1)   # Shape: (num_images, num_neuro
 pixel_data = figure1_collection(
     stochbin_sum=stochbin_sum,
     sigma10_sum=sigma10_sum,
-    num_imgs=50,
+    num_imgs=5,
     num_noise_seeds=100,
     num_frames=15,
     img_height=144,
@@ -76,16 +77,18 @@ print()
 print("Step 3: Generating Figure 1...")
 print("  (This may take a moment...)")
 
-fig = plot_figure1(file_name,
+# Note: Skipping region filtering for this test since we don't have the proper label mapping
+# In production, you would load and filter region_labels_df to match the neurons in predictions
+
+fig = plot_figure1(f"testjosh_jan15(region {test_region})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
     pixel_data['bnoise_mean'], pixel_data['bnoise_var'],
     pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
-    ve_thresh=0.1,
-    neuron_idx=2,
-    savefig=True
+    None, test_region,  # region_labels_df=None to skip filtering
+    ve_thresh=0.1, neuron_idx=2, savefig=True
 )
 
 print("\n✓ Figure 1 generated successfully!")
