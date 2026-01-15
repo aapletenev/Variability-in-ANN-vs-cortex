@@ -297,7 +297,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         sigma10_varv1 = v1_filtered['v1var_sigma10']
     
     # Print Notice
-    print(f"Region {region_label}\n-------------------\n"
+    print(f"\nFiltering to Region {region_label}\n-------------------\n"
         f"Shape of mean arrays: Binarization {stochbin_meanv1.shape}, Gaussian {sigma10_meanv1.shape}\n"
           f"Shape of variance arrays: Binarization {stochbin_varv1.shape}, Gaussian {sigma10_varv1.shape}")
 

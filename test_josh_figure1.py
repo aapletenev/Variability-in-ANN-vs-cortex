@@ -80,7 +80,7 @@ print("  (This may take a moment...)")
 # Note: Skipping region filtering for this test since we don't have the proper label mapping
 # In production, you would load and filter region_labels_df to match the neurons in predictions
 
-fig = plot_figure1(f"testjosh_jan13(region {test_region})",
+fig = plot_figure1(f"testjosh_jan15(region {test_region})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
