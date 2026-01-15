@@ -1,11 +1,11 @@
 import numpy as np
-from numpy import full
 from prediction import make_predictions
 
 """
 Assumptions
 1. scans.csv must be in same directory
 2. microns_area_labels.csv is in same directory
+3. note where image_stack is saved, this is imagenet-mini file from kaggle
 """
 
 image_stack = np.load('image_stacks/final_image_stack/image_stack(12-24-2025).npy')

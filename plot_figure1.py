@@ -12,6 +12,7 @@ Usage:
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
@@ -21,7 +22,7 @@ from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 
-from figure1_utils import preprocess_neuron_data, figure1_collection
+from figure1_utils import preprocess_neuron_data, figure1_collection, filter_x_region
 
 
 # ==============================================================================
@@ -239,10 +240,11 @@ def fit_pixel_data(mean_data, var_data, a_glob=None, b_glob=None):
 # PLOTTING FUNCTION
 # ==============================================================================
 
-def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
+def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
                  gnoise_mean, gnoise_var, bnoise_mean, bnoise_var,
                  fg_mean_relu, fg_var_relu, fb_mean_relu, fb_var_relu,
-                 ve_thresh=0.1, neuron_idx=2, savefig=False):
+                 region_labels_df=None, region_label=1, ve_thresh=0.1, 
+                 neuron_idx=2, savefig=False):
     """
     Create Figure 1 with all subpanels.
     
@@ -272,13 +274,33 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
         Mean pixel values for Bernoulli noise with ReLU (pixel-level)
     fb_var_relu : ndarray
         Variance in pixel values for Bernoulli noise with ReLU (pixel-level)
+    region_label : ndarray, optional
+        Label array for stochastic binary noise (needed if filter_v1=True)
     ve_thresh : float, default=0.1
         Variance explained threshold
     neuron_idx : int, default=2
         Index of neuron to highlight (Neuron 3 = index 2)
     savefig : bool, default=False
         Whether to save the figure as 'figure1.png'
+    filter_v1 : bool, default=True
+        Whether to filter data to V1 region only
     """
+    # Apply V1 filtering if requested
+    if region_labels_df is not None:
+        print("  Filtering V1 region...")
+        v1_filtered = filter_x_region(region_label, stochbin_meanv1, stochbin_varv1, region_labels_df,
+            sigma10_meanv1, sigma10_varv1
+        )
+        stochbin_meanv1 = v1_filtered['v1mean_stochbin']
+        stochbin_varv1 = v1_filtered['v1var_stochbin']
+        sigma10_meanv1 = v1_filtered['v1mean_sigma10']
+        sigma10_varv1 = v1_filtered['v1var_sigma10']
+    
+    # Print Notice
+    print(f"\nFiltering to Region {region_label}\n-------------------\n"
+        f"Shape of mean arrays: Binarization {stochbin_meanv1.shape}, Gaussian {sigma10_meanv1.shape}\n"
+          f"Shape of variance arrays: Binarization {stochbin_varv1.shape}, Gaussian {sigma10_varv1.shape}")
+
     # Step 1: Compute all neuron-level fits
     print("  Computing neuron-level fits...")
 
@@ -379,8 +401,8 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
     inner_tl = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=outer[0, 0], wspace=0.3, hspace=0.3)
     
     # Data for Neuron 3
-    xg, yg = safe_mask(sigma10_meanv1[neuron_idx], sigma10_varv1[neuron_idx])
-    xb, yb = safe_mask(stochbin_meanv1[neuron_idx], stochbin_varv1[neuron_idx])
+    xg, yg = safe_mask(sigma10_meanv1[:, neuron_idx], sigma10_varv1[:, neuron_idx])
+    xb, yb = safe_mask(stochbin_meanv1[:, neuron_idx], stochbin_varv1[:, neuron_idx])
     
     # Fits for Gaussian
     if xg.size > 1:
@@ -785,7 +807,7 @@ def plot_figure1(stochbin_meanv1, stochbin_varv1, sigma10_meanv1, sigma10_varv1,
              ha='center', va='bottom', fontsize=14, fontweight='bold', transform=fig.transFigure)
     
     if savefig: 
-        plt.savefig("figure1.png")
+        plt.savefig(f"{figure_name}.png")
         plt.close()
     else: plt.show()
     return fig

@@ -92,24 +92,29 @@ def load_prediction_data(folder_path_stochbin: str = 'predictions/8-27-2025/',
     }
 
 
-def filter_v1_region(stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
-                     stochbin_label: np.ndarray, sigma10_mean: np.ndarray,
-                     sigma10_var: np.ndarray) -> dict:
+def filter_x_region(region, stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
+                     region_labels_df, sigma10_mean: np.ndarray,
+                     sigma10_var: np.ndarray, 
+                     encoding: dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4}) -> dict:
     """
     Filter V1 region (region 1) from the prediction arrays.
     
     Parameters:
     -----------
+    region : int
+        Region number to filter (1=V1, 2=LM, 3=AL, 4=RL)
     stochbin_mean : np.ndarray
         Mean array for stochastic binary
     stochbin_var : np.ndarray
         Variance array for stochastic binary
-    stochbin_label : np.ndarray
-        Label array for stochastic binary
+    region_labels_df : pandas.DataFrame
+        DataFrame containing region labels for all neurons with 'brain_area' column
     sigma10_mean : np.ndarray
         Mean array for sigma10
     sigma10_var : np.ndarray
         Variance array for sigma10
+    encoding : dict, default={'V1':1, 'LM':2, 'AL':3, 'RL':4}
+        Mapping from brain area names to numeric labels
         
     Returns:
     --------
@@ -120,12 +125,23 @@ def filter_v1_region(stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
         - 'v1mean_sigma10': V1 mean for sigma10
         - 'v1var_sigma10': V1 variance for sigma10
     """
-    v1mean_stochbin = filter_region(1, stochbin_label, stochbin_mean)
-    v1var_stochbin = filter_region(1, stochbin_label, stochbin_var)
+    # Extract brain_area column and encode to numeric labels
+    if hasattr(region_labels_df, 'brain_area'):
+        # It's a DataFrame - extract and encode the brain_area column
+        stochbin_label = region_labels_df['brain_area'].map(encoding).values
+    elif hasattr(region_labels_df, 'map'):
+        # It's a Series - encode it directly
+        stochbin_label = region_labels_df.map(encoding).values
+    else:
+        # It's already a numpy array
+        stochbin_label = region_labels_df
+    
+    v1mean_stochbin = filter_region(region, stochbin_label, stochbin_mean)
+    v1var_stochbin = filter_region(region, stochbin_label, stochbin_var)
     
     # Using labels from stochbin for sigma10 as well (same neurons)
-    v1mean_sigma10 = filter_region(1, stochbin_label, sigma10_mean)
-    v1var_sigma10 = filter_region(1, stochbin_label, sigma10_var)
+    v1mean_sigma10 = filter_region(region, stochbin_label, sigma10_mean)
+    v1var_sigma10 = filter_region(region, stochbin_label, sigma10_var)
     
     return {
         'v1mean_stochbin': v1mean_stochbin,

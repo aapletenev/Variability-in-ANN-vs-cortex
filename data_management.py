@@ -2,6 +2,33 @@ import os
 import numpy as np
 import pandas as pd
 
+def remove_x(arr, remove: str, k_percent: int):
+    """
+    Parameters
+    ----------
+    arr: 
+        object to remove x% from
+    remove: str
+        for now only top used, removes top k % if "top" otherwise bottom k % 
+    k_percent: int
+        k % to take off top/bottom %
+
+    Returns
+    list
+        indices of neurons to keep
+    """
+    if len(arr) <= 1:
+        return np.arange(len(arr))  
+
+        
+    n_remove = int(k_percent / 100 * len(arr))
+    n_keep = max(1, len(arr) - n_remove)
+    
+    if remove == 'top':
+        return arr[:n_keep]
+    else:  # remove == 'bottom'
+        return arr[-n_keep:]
+
 def ensure_2d_list(scans) -> list:
     """
     Parameters
