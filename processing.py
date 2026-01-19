@@ -42,15 +42,31 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     label_mapping: label
         mapping output from scans() - should be 1D array with one entry per neuron
     array: np.array
-        array to filter - shape (num_images, num_neurons)
+        array to filter - shape (num_images, num_neurons) or (num_neurons,)
 
     Returns
     -------
     array
         filtered array where brain region is equal to region_input
     """
-    filtered = [array[i][label_mapping == region_input] for i in range(array.shape[0])]
-    return np.stack(filtered, axis=0)
+    # Convert to numpy array if needed
+    array = np.asarray(array)
+    label_mapping = np.asarray(label_mapping)
+    
+    # Create boolean mask
+    mask = (label_mapping == region_input)
+    
+    # Handle both 1D and 2D arrays
+    if array.ndim == 1:
+        # 1D array: just filter directly
+        return array[mask]
+    elif array.ndim == 2:
+        # 2D array: filter along the neuron axis (axis=1)
+        return array[:, mask]
+    else:
+        # Object array or other - try to handle as list of arrays
+        filtered = [np.asarray(arr)[mask] for arr in array]
+        return np.stack(filtered, axis=0)
 
 def remove_rate(arr, spikes: int, frames: int = 15, seconds: int = 1, fill_value = np.nan):
     """

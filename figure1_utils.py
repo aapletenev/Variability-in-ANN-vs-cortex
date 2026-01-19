@@ -128,14 +128,17 @@ def filter_x_region(region, stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
     # Extract brain_area column and encode to numeric labels
     if hasattr(region_labels_df, 'brain_area'):
         # It's a DataFrame - extract and encode the brain_area column
-        stochbin_label = region_labels_df['brain_area'].map(encoding).values
-    elif hasattr(region_labels_df, 'map'):
+        stochbin_label = region_labels_df['brain_area'].replace(encoding).values
+    elif hasattr(region_labels_df, 'replace'):
         # It's a Series - encode it directly
-        stochbin_label = region_labels_df.map(encoding).values
+        stochbin_label = region_labels_df.replace(encoding).values
     else:
         # It's already a numpy array
         stochbin_label = region_labels_df
     
+    print("^"*80)
+    print(f"TEST DIAGNOSTICS\nregion: {region}, label shape: {stochbin_label.shape}, arr shape: {stochbin_mean.shape}")
+    print("^"*80)
     v1mean_stochbin = filter_region(region, stochbin_label, stochbin_mean)
     v1var_stochbin = filter_region(region, stochbin_label, stochbin_var)
     
