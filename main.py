@@ -24,9 +24,9 @@ for batch_idx in range(beg_index, n_images, batch_size):
 	image_batch = image_stack[batch_idx: end_idx]	
 # just save sum (first array ) here to save storage, also note regions not needed we can reuse from last time
 	a = make_predictions(noise_type = 'dynamic', images = image_batch, sigma = 10, scans = [[4,7]], 
-					  stochastic_bin_param = True, noise_seeds=100, num_frames=15, return_before_sum = False)
+					  stochastic_bin_param = False, noise_seeds=100, num_frames=15, return_before_sum = False)
 	sum_arr, label_arr = a[0], a[3]
-	np.save(f"{save_folder}/bern_sum({batch_idx})", sum_arr)
-	np.save(f"{save_folder}/bern_labels({batch_idx})", label_arr)
+	np.save(f"{save_folder}/gaus_sum({batch_idx})", sum_arr)
+	np.save(f"{save_folder}/gaus_labels({batch_idx})", label_arr)
 
 	print(f"---SAVED BATCH {batch_idx}---")

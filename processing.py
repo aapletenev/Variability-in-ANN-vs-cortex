@@ -53,6 +53,10 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
     array = np.asarray(array)
     label_mapping = np.asarray(label_mapping)
     
+    # If label_mapping is 2D, take the first row (labels are same for all images)
+    if label_mapping.ndim == 2:
+        label_mapping = label_mapping[0]
+    
     # Create boolean mask
     mask = (label_mapping == region_input)
     
@@ -67,7 +71,7 @@ def filter_region(region_input: int, label_mapping: list | np.ndarray, array):
         # Object array or other - try to handle as list of arrays
         filtered = [np.asarray(arr)[mask] for arr in array]
         return np.stack(filtered, axis=0)
-
+    
 def remove_rate(arr, spikes: int, frames: int = 15, seconds: int = 1, fill_value = np.nan):
     """
     remove values that exceed a specified rate, default replace with np.nan

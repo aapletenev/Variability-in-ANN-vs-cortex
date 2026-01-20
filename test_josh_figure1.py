@@ -8,17 +8,22 @@ from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
 path = "predictions/test_predictions(1-8-26)"
-test_region = 2
+test_region = 1
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
 gaus_arrays = []
+
 
 # Iterate through all .npy files in the path
 for file in Path(path).glob("*.npy"):
     # Get filename and split on underscore
     filename = file.stem  # Gets filename without extension
     parts = filename.split("_")
+    
+    # Only process sum arrays (skip mean, var, label)
+    if "sum" not in filename:
+        continue
     
     # Load the array
     arr = np.load(file, allow_pickle=True)
@@ -79,10 +84,16 @@ print()
 print("Step 3: Generating Figure 1...")
 print("  (This may take a moment...)")
 
-path_regions_csv = "data/microns/fnn/data/microns/scans.csv"
+# Load brain region labels from microns_area_labels.csv
+path_regions_csv = "microns_area_labels.csv"
 regions_df = pd.read_csv(path_regions_csv)
 
-fig = plot_figure1(f"testjosh_jan15(region {test_region})",
+# Region mapping: {'V1':1, 'LM':2, 'AL':3, 'RL':4}
+# Test with region 2 = LM
+region_name_map = {1: 'V1', 2: 'LM', 3: 'AL', 4: 'RL'}
+print(f"\nFiltering for region {test_region} ({region_name_map[test_region]})")
+
+fig = plot_figure1(f"testjosh_jan15(region_{region_name_map[test_region]})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
@@ -90,10 +101,10 @@ fig = plot_figure1(f"testjosh_jan15(region {test_region})",
     pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
     regions_df, test_region,
-    ve_thresh=0.1, neuron_idx=2, savefig=True
+    ve_thresh=0.1, neuron_idx=0, savefig=True
 )
 
-print("\n✓ Figure 1 generated successfully!")
+print("\n[SUCCESS] Figure 1 generated successfully!")
 print()
 print("=" * 80)
 print("WORKFLOW COMPLETE!")
