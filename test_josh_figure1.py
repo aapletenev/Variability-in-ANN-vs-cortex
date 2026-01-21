@@ -95,7 +95,7 @@ regions_df = pd.read_csv(path_regions_csv)
 region_name_map = {1: 'V1', 2: 'LM', 3: 'AL', 4: 'RL'}
 print(f"\nFiltering for region {test_region} ({region_name_map[test_region]})")
 
-fig = plot_figure1(f"testjosh_jan15(region_{region_name_map[test_region]})",
+fig = plot_figure1(f"testjosh_jan21(region_{region_name_map[test_region]})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
     pixel_data['gnoise_mean'], pixel_data['gnoise_var'],
