@@ -4,7 +4,9 @@ from pathlib import Path
 from figure1_utils import figure1_collection
 from plot_figure1 import plot_figure1
 
-# Make Predictions
+# ==============================================================================
+# LOAD/PROCESS DATA - COMPLETE WORKFLOW
+# ==============================================================================
 
 # Path where predictions are stored
 path = "predictions/test_predictions(1-8-26)"
