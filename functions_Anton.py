@@ -1,6 +1,9 @@
 import numpy as np
 from scipy import linalg
 from typing import Optional, Union, Tuple
+import os
+from matplotlib.ticker import MaxNLocator
+
 
 #####functions
 #function to return neurons of specific area
@@ -265,8 +268,8 @@ def plot_dual_axis_boxplot(ax, data1, data2,
                            color1='tab:orange', color2='tab:blue',
                            title='Fano Factor Comparison',
                            xlabel='Frame', ylabel_suffix='Fano Factor',
-                           show_outliers=False, whisk=(0.25, 0.75),
-                           ylim=None, xline=None, scale=1.0):  # <--- Added scale
+                           show_outliers=False, whisk=(25, 75),
+                           ylim=None, xline=None, scale=1.0):
     """
     Plots two datasets on a specific axis (ax) using dual Y-axes.
     Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
@@ -333,8 +336,15 @@ def plot_dual_axis_boxplot(ax, data1, data2,
 
     # --- AXIS FORMATTING ---
     ax1.set_xlabel(xlabel, fontsize=s_label)
-    ax1.set_xticks(np.arange(num_frames))
-    ax1.set_xticklabels(np.arange(1, num_frames + 1), fontsize=s_tick)
+
+    # Create the full range of ticks and labels
+    all_ticks = np.arange(num_frames)
+    all_labels = np.arange(1, num_frames + 1)
+
+    # Apply slicing [::2] to show every second tick/label
+    ax1.set_xticks(all_ticks[::2])
+    ax1.set_xticklabels(all_labels[::2], fontsize=s_tick)
+
     ax1.set_title(title, fontsize=s_title)
 
     # Left Axis (Dataset 1)
@@ -355,8 +365,8 @@ def plot_dual_axis_boxplot(ax, data1, data2,
         ax1.set_ylim(bottom=ylim)
         ax2.set_ylim(bottom=ylim)
     if xline is not None:
-        ax1.axhline(xline, color='lightgray', linestyle='dashed', linewidth=1)
-        ax2.axhline(xline, color='lightgray', linestyle='dashed', linewidth=1)
+        ax1.axvline(xline, color='lightgray', linestyle='dashed', linewidth=1)
+        ax2.axvline(xline, color='lightgray', linestyle='dashed', linewidth=1)
 
     return ax1, ax2
 
@@ -367,8 +377,8 @@ def plot_single_axis_boxplot(ax, data1, data2,
                              title='Fano Factor Comparison',
                              xlabel='Frame', ylabel_suffix='Fano Factor',
                              show_outliers=False, ylim=None,
-                             whisk=(2.5, 97.5),
-                             legend_loc='upper right', xline=None, scale=1.0):  # <--- Added scale
+                             whisk=(25, 75),
+                             legend_loc='upper right', xline=None, scale=1.0):
     """
     Plots two datasets on the SAME axis (ax) side-by-side.
     Handles the case where data2 is None.
@@ -378,7 +388,7 @@ def plot_single_axis_boxplot(ax, data1, data2,
     s_title = 14 * scale
     s_label = 12 * scale
     s_tick = 10 * scale
-    s_legend = 10 * scale  # Legend font size
+    s_legend = 10 * scale
 
     # --- HELPER: Extract and Clean Data ---
     def prepare_data(data):
@@ -401,18 +411,13 @@ def plot_single_axis_boxplot(ax, data1, data2,
 
     # 2. Determine Logic based on data2 presence
     if data2 is not None:
-        # --- DUAL PLOT MODE ---
         plot_data2 = prepare_data(data2)
-
-        # Shift positions side-by-side
         pos1 = np.arange(num_frames) - 0.15
         pos2 = np.arange(num_frames) + 0.15
 
-        # Plot Both
         box1 = ax.boxplot(plot_data1, positions=pos1, widths=0.3,
                           patch_artist=True, showfliers=show_outliers,
                           whis=whisk)
-
         box2 = ax.boxplot(plot_data2, positions=pos2, widths=0.3,
                           patch_artist=True, showfliers=show_outliers,
                           whis=whisk)
@@ -421,17 +426,11 @@ def plot_single_axis_boxplot(ax, data1, data2,
         legend_labels = [label1, label2]
 
     else:
-        # --- SINGLE PLOT MODE ---
-        # Center positions
         pos1 = np.arange(num_frames)
-
-        # Plot Only First
         box1 = ax.boxplot(plot_data1, positions=pos1, widths=0.4,
                           patch_artist=True, showfliers=show_outliers,
                           whis=whisk)
-
         box2 = None
-
         legend_handles = [box1["boxes"][0]]
         legend_labels = [label1]
 
@@ -443,18 +442,22 @@ def plot_single_axis_boxplot(ax, data1, data2,
         plt.setp(box_handle["medians"], color="black", linewidth=1.5)
 
     style_boxplot(box1, color1)
-
     if data2 is not None:
         style_boxplot(box2, color2)
 
     # --- AXIS FORMATTING ---
     ax.set_xlabel(xlabel, fontsize=s_label)
-    ax.set_xticks(np.arange(num_frames))
-    ax.set_xticklabels(np.arange(1, num_frames + 1), fontsize=s_tick)
+
+    # Create the full range of ticks and labels
+    all_ticks = np.arange(num_frames)
+    all_labels = np.arange(1, num_frames + 1)
+
+    # Apply slicing [::2] to show every second tick/label
+    ax.set_xticks(all_ticks[::2])
+    ax.set_xticklabels(all_labels[::2], fontsize=s_tick)
+
     ax.set_title(title, fontsize=s_title)
     ax.set_ylabel(ylabel_suffix, fontweight='bold', fontsize=s_label)
-
-    # Scale tick params for y-axis as well
     ax.tick_params(axis='y', labelsize=s_tick)
 
     # Apply Legend with Scaled Font
@@ -553,7 +556,7 @@ def compute_slope_var_mean(Mean, Var):
 
 def smooth_func(x, a, b):
     return a * (x**b)
-def fit_lin_power(x, y, a_initial = 1e-3, b_initial = 1e-3):
+def fit_lin_power(x, y, a_initial = 1e-3, b_initial = 1e-1):
     mask = (x > 0) & (y > 0) & np.isfinite(x) & np.isfinite(y)
     if mask.sum() < 2:
         return np.nan, np.nan, np.nan  # a_lin, b_lin, r2_lin
@@ -611,7 +614,7 @@ def compute_neuron_fits(mean_data, var_data, global_init_params=None):
     for frame_idx in range(num_frames):
 
         # Determine initial guesses for this frame
-        p0_a = 1.0
+        p0_a = 1e-3
         p0_b = 1e-3
 
         if global_init_params:
@@ -638,9 +641,13 @@ def compute_neuron_fits(mean_data, var_data, global_init_params=None):
 ###compute linear fisher info with kanitscheider correction
 
 
-def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, nan_fill_value=100.0, shuffle=False):
+def compute_fisher_info(spike_counts, d_theta=1, method='cholesky', reg=1e-3, nan_fill_value=100.0, shuffle=False):
     """
-    Computes Bias-Corrected Linear Fisher Information.
+    Computes Fisher Information.
+
+    If shuffle=False: Returns Bias-Corrected Linear Fisher Information (I_bc).
+    If shuffle=True:  Returns Naive Linear Fisher Information (I_naive) to avoid
+                      over-penalizing diagonal matrices.
 
     Parameters
     ----------
@@ -660,7 +667,9 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
 
     Returns
     -------
-    I_bc, var_I_bc : (float, float)
+    I_out, var_out : (float, float)
+        I_out is I_bc (if shuffle=False) or I_naive (if shuffle=True).
+        var_out is var_I_bc (if shuffle=False) or 0.0 (if shuffle=True).
     """
     # 0. Pre-processing: Handle NaNs
     X = np.array(spike_counts, dtype=float, copy=True)
@@ -672,8 +681,6 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
     # Correction constraint check
     v = (2 * T) - 2
     if v - N - 3 <= 0:
-        # Note: If shuffling, effective N might be considered differently in some contexts,
-        # but usually the standard formula is applied to the diagonal matrix.
         raise ValueError(f"Insufficient trials. Requirement: 2*T > N + 5. (Got T={T}, N={N})")
 
     # 1. Compute Statistics
@@ -685,24 +692,17 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
     d_mu_d_theta = d_mu / d_theta
 
     # --- COVARIANCE CALCULATION ---
-    # We compute S slightly differently depending on method/shuffle
-
     if method == 'simple':
         cov1 = np.cov(X1, rowvar=False)
         cov2 = np.cov(X2, rowvar=False)
         S = (cov1 + cov2) / 2.0
 
-        # --- SHUFFLING LOGIC ---
         if shuffle:
-            # Set off-diagonals to zero
-            # np.diag(S) gets the diagonal; np.diag(...) puts it back into a matrix
             S = np.diag(np.diag(S))
 
-        # Handle N=1 case
         if N == 1:
-            S = np.array([[S.item()]])  # S might be scalar after diag extraction if N=1
+            S = np.array([[S.item()]])
 
-        # Invert
         try:
             S_inv = np.linalg.inv(S)
         except np.linalg.LinAlgError:
@@ -714,22 +714,17 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
             I_naive = I_naive.item()
 
     elif method == 'cholesky':
-        # Compute S manually
         X1_c = X1 - mu1
         X2_c = X2 - mu2
         X_combined = np.concatenate([X1_c, X2_c], axis=0)
 
         S = (X_combined.T @ X_combined) / (2 * T - 2)
 
-        # --- SHUFFLING LOGIC ---
         if shuffle:
-            # Zero out off-diagonals
             S = np.diag(np.diag(S))
 
-        # Regularize
         S.flat[::N + 1] += reg
 
-        # Solve
         try:
             c, lower = linalg.cho_factor(S, lower=True)
             x = linalg.cho_solve((c, lower), d_mu_d_theta)
@@ -740,8 +735,14 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
     else:
         raise ValueError("Method must be 'simple' or 'cholesky'")
 
-    # 3. Bias Correction
-    # (Applied to the computed I_naive, regardless of whether S was diagonalized)
+    # --- MODIFICATION START ---
+    # If shuffled, return Naive estimate directly to avoid invalid bias correction
+    # on diagonal matrices.
+    if shuffle:
+        return I_naive, 0.0
+    # --- MODIFICATION END ---
+
+    # 3. Bias Correction (Only for Real Data)
     numerator = 2 * T - N - 3
     denominator = 2 * T - 2
     factor = numerator / denominator
@@ -749,7 +750,7 @@ def compute_fisher_info(spike_counts, d_theta = 1, method='cholesky', reg=1e-6, 
 
     I_bc = I_naive * factor - subtraction
 
-    # 4. Variance Calculation
+    # 4. Variance Calculation (Only for Real Data)
     denom_common = (v - N) * (v - N - 3)
     alpha = 2 / denom_common
     beta = (v - N - 1) / denom_common
@@ -914,7 +915,7 @@ def compute_fisher_info_all(data_tensor, n_image_pairs=10, n_repeats=50, n_list=
                     )
                     # Shuffled FI
                     val_shuf, _ = compute_fisher_info(
-                        sub_data, d_theta=d_theta, method='cholesky', shuffle=True
+                        sub_data, d_theta=d_theta, method='simple', shuffle=True
                     )
 
                     FI_real[p, r, i] = val_real
@@ -1015,7 +1016,7 @@ def plot_scaling_metric(data, n_list, aggregation='median', title="Fisher Inform
                     alpha=0.4)
 
     # Set Labels with scaled font sizes
-    ax.set_xlabel("Number of Neurons (N)", fontsize=label_size)
+    ax.set_xlabel("Number of Neurons", fontsize=label_size)
     ax.set_ylabel(ylabel, fontsize=label_size)
     ax.set_title(f"{title}", fontsize=title_size)
 
@@ -1149,3 +1150,71 @@ def save_predictions(data, path, filename, dirs = ['frames', 'sum', 'mean', 'var
         os.makedirs(path + dir, exist_ok=True)
     for i,dir in enumerate(dirs):
         np.save(path + dir + '/' + filename, data[i])
+
+
+def plot_spike_comparison(ref_array, title_text, stack_array=None, line_color='blue', font_scale=1.0, ax=None):
+    """
+    Plots a single reference line (black). Optionally plots a stack of background lines.
+    Can be used as a standalone plot or as part of a subplot.
+    """
+
+    # Logic: If no axis is provided, create a new figure and axis
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 4))
+        is_standalone = True
+    else:
+        is_standalone = False
+
+    # Calculate scaled font sizes
+    title_size = 14 * font_scale
+    label_size = 12 * font_scale
+    tick_size = 10 * font_scale
+
+    # Define x-axis based on the reference array length
+    x_axis = np.arange(ref_array.shape[0]) + 1
+
+    # 1. Plot the 2D stack (if provided)
+    if stack_array is not None:
+        for i in range(stack_array.shape[0]):
+            ax.plot(x_axis, stack_array[i, :], color=line_color, alpha=0.4, linewidth=1.5)
+
+    # 2. Plot the 1D reference array
+    ax.plot(x_axis, ref_array, color='black', linewidth=2.5, label='Reference')
+
+    # 3. Formatting
+    ax.set_title(title_text, fontsize=title_size)
+    ax.set_xlabel("Frames", fontsize=label_size)
+    ax.set_ylabel("Spike Count", fontsize=label_size)
+
+    # Force Integer Ticks
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.tick_params(axis='both', labelsize=tick_size)
+
+    # Aesthetics
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # 4. Only show/tight_layout if we created the figure
+    if is_standalone:
+        plt.tight_layout()
+        plt.show()
+
+    return ax
+
+def plot_mean_comparison(ax, mean_no_noise, mean_with_noise, title, color):
+    ax.scatter(mean_no_noise.flatten(), mean_with_noise.flatten(),
+               color=color,
+               s=1,
+               alpha=0.1)
+    #add regression line
+    slope, intercept, r_value, p_value, std_err = stats.linregress(mean_no_noise.flatten(), mean_with_noise.flatten())
+    x_vals = np.array([0, 100])
+    y_vals = intercept + slope * x_vals
+    ax.plot(x_vals, y_vals, color='red', linestyle='-', label=f'Regression line (slope={slope:.2f})')
+    ax.set_xlabel('Mean Prediction (No Noise)', fontsize=16)
+    ax.set_ylabel('Mean Prediction (With Noise)', fontsize=16)
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.plot([0, 100], [0, 100], color='black', linestyle='--')
+    ax.set_title(title, fontsize=16)
+

@@ -1,4 +1,4 @@
-%matplotlib qt
+#%matplotlib qt
 import numpy as np
 from numpy import full
 from prediction import make_predictions
@@ -7,9 +7,10 @@ import tracemalloc
 from random_images import load_random_images
 import os
 import matplotlib
-matplotlib.use('Qt5Agg')
+#matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import time
+from functions_Anton import save_predictions, process_images_batched
 
 
 
@@ -20,7 +21,8 @@ Assumptions
 2. microns_area_labels.csv is in same directory
 """
 
-
+wd = os.getcwd()
+dirs = ['frames', 'sum', 'mean', 'var', 'label']
 
 #the format is (num_images, height, width)
 images = np.load('image_arr_anton(first100images).npy')
@@ -28,8 +30,7 @@ images = np.load('image_arr_anton(first100images).npy')
 #plot first  image = images[0]  to verify loading worked
 plt.imshow(images[0], cmap='gray')
 
-wd = os.getcwd()
-dirs = ['frames', 'sum', 'mean', 'var', 'label']
+
 
 #################100 images predictions########################
 path = wd + '/predictions/Anton/'
@@ -40,6 +41,7 @@ os.makedirs(path, exist_ok=True)
 pred_arrs_Gaus = make_predictions('dynamic', images, 10, [[4, 7]],
                                  stochastic_bin_param=False,
                                  noise_seeds=100, before_sum=True)
+#the output[0] #the output is (num_images, num_noise, num_frames, num_neurons)  and others - (num_images, num_noise, num_neurons)
 
 
 duration = (time.perf_counter()- start_time)/60
@@ -57,17 +59,25 @@ pred_arrs_Bern = make_predictions('dynamic', images, 0, [[4, 7]],
 #save the predictions in predictions/Anton
 save_predictions(pred_arrs_Bern, path, 'Bern.npy', dirs)
 
+#now make prediction without any noise, so only 1 trial
+pred_arrs_no_noise = make_predictions("no noise", images, 0, [[4, 7]],
+                                 stochastic_bin_param=False,
+                                 noise_seeds=1, before_sum=True)
+#save the predictions in predictions/Anton
+save_predictions(pred_arrs_no_noise, path, 'No_noise.npy', dirs)
 
 
-#####add predictions for 100 images but 100 trials but with 10 blank images at the start######
+
+#####add predictions for 100 images, 100 trials but with 10 blank images at the start######
 path = wd + '/predictions/Anton/Blank_image_in_front/'
 os.makedirs(path, exist_ok=True)
 
 pred_arrs_Bern_blank = make_predictions('dynamic', images, 0, [[4, 7]],
                                     stochastic_bin_param=True,
-                                    noise_seeds=100, num_frames = 20, num_frames_blank=10, before_sum=True)
+                                    noise_seeds=20, num_frames = 20, num_frames_blank=10, before_sum=True)
 #save the predictions in predictions/Anton
 save_predictions(pred_arrs_Bern_blank, path, 'Bern_blank_10.npy', dirs)
+
 pred_arrs_Gaus_blank = make_predictions('dynamic', images, 10, [[4, 7]],
                                     stochastic_bin_param=False,
                                     noise_seeds=20, num_frames = 20, num_frames_blank=10, before_sum=True)
@@ -76,7 +86,7 @@ save_predictions(pred_arrs_Gaus_blank, path, 'Gaus_10_blank_10.npy', dirs)
 
 
 
-##############10 images but 1000 trials##################
+##############19 images but 1000 trials##################
 path = wd + '/predictions/Anton/1000_trials/'
 os.makedirs(path, exist_ok=True)
 
@@ -93,7 +103,8 @@ save_predictions(pred_arrs_Gaus_1000, path, 'Gaus_10_1000.npy', dirs = ['sum', '
 
 
 
-####pixel space##################
+##############pixel space
+path = wd + '/predictions/Anton/1000_trials/'
 
 ##collect noise images for 19 first images
 all_images_noise =  process_images_batched(
@@ -107,8 +118,20 @@ all_images_noise =  process_images_batched(
 )
 
 #save images after noise
-path = wd + '/predictions/Anton/1000_trials/'
+
 np.save(path + 'all_images_noise_Bern.npy', all_images_noise)
+
+###now Gaussian
+all_images_noise_Gaussian =  process_images_batched(
+        images[0:19],
+        num_trials = 1000,
+        num_frames = 15,
+        noise_type = "dynamic",
+        stochastic_bin_param = False,
+        sigma= 10,
+    return_sum_over_frames = True)
+#save images after noise
+np.save(path + 'all_images_noise_Gaussian.npy', all_images_noise_Gaussian)
 
 
 
@@ -174,12 +197,13 @@ pred_arrs_const = make_predictions('dynamic', images[0:4], 0, [[4, 7]],
                                  stochastic_bin_param=False,
                                  noise_seeds=2, before_sum=True)
 
-plt.plot(pred_arrs_const[0][0, 0, :, 13])
+plt.plot(pred_arrs_no_noise[0][0, 0, :, 13])
 plt.plot(pred_arrs_Bern[0][0, 0, :, 13])
 plt.plot(pred_arrs_Bern[0][0, 1, :, 13])
 plt.plot(pred_arrs_Bern[0][0, 2, :, 13])
 
 
-plt.plot(pred_arrs_const[0][0, 0, :, 145])
+plt.plot(pred_arrs_no_noise[0][0, 0, :, 145])
 plt.plot(pred_arrs_Bern[0][0, 0, :, 145])
 plt.plot(pred_arrs_Bern_blank[0][0, 0, :, 145])
+
