@@ -10,7 +10,7 @@ from plot_figure1 import plot_figure1
 
 # Path where predictions are stored
 path = "predictions/test_predictions(1-8-26)"
-test_region = 1
+test_region = 2
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
