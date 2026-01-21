@@ -285,9 +285,11 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     filter_v1 : bool, default=True
         Whether to filter data to V1 region only
     """
-    # Apply V1 filtering if requested
+    # Apply brain region filtering if requested
+    region_name_map = {1: 'V1', 2: 'LM', 3: 'AL', 4: 'RL'}
     if region_labels_df is not None:
-        print("  Filtering V1 region...")
+        region_name = region_name_map.get(region_label, f"Region {region_label}")
+        print(f"  Filtering to {region_name} region...")
         v1_filtered = filter_x_region(region_label, stochbin_meanv1, stochbin_varv1, region_labels_df,
             sigma10_meanv1, sigma10_varv1
         )
@@ -295,9 +297,11 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         stochbin_varv1 = v1_filtered['v1var_stochbin']
         sigma10_meanv1 = v1_filtered['v1mean_sigma10']
         sigma10_varv1 = v1_filtered['v1var_sigma10']
+        print(f"  Filtered to {stochbin_meanv1.shape[1]} neurons in {region_name}")
     
     # Print Notice
-    print(f"\nFiltering to Region {region_label}\n-------------------\n"
+    region_name = region_name_map.get(region_label, f"Region {region_label}")
+    print(f"\nProcessing {region_name}\n-------------------\n"
         f"Shape of mean arrays: Binarization {stochbin_meanv1.shape}, Gaussian {sigma10_meanv1.shape}\n"
           f"Shape of variance arrays: Binarization {stochbin_varv1.shape}, Gaussian {sigma10_varv1.shape}")
 

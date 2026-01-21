@@ -12,7 +12,7 @@ image_stack = np.load('image_stacks/final_image_stack/image_stack(12-24-2025).np
 gray_frames = np.full((1, 144, 256), 128)
 image_stack = np.concatenate((gray_frames, image_stack), 0)
 
-n_images = 5 # adjust based on TOTAL number of images wanted for one prediction batch
+n_images = 3 # adjust based on TOTAL number of images wanted for one prediction batch
 batch_size = 1
 save_folder = "predictions/test_predictions(1-8-26)"
 beg_index = 0 # put where you want to start batch collection
@@ -24,8 +24,9 @@ for batch_idx in range(beg_index, n_images, batch_size):
 	image_batch = image_stack[batch_idx: end_idx]	
 # just save sum (first array ) here to save storage, also note regions not needed we can reuse from last time
 	a = make_predictions(noise_type = 'dynamic', images = image_batch, sigma = 10, scans = [[4,7]], 
-					  stochastic_bin_param = True, noise_seeds=100, num_frames=15, return_before_sum = False)
-	sum_arr = a[0]
-	np.save(f"{save_folder}/bern_sum({batch_idx})", sum_arr)
-		
+					  stochastic_bin_param = False, noise_seeds=100, num_frames=15, return_before_sum = False)
+	sum_arr, label_arr = a[0], a[3]
+	np.save(f"{save_folder}/gaus_sum({batch_idx})", sum_arr)
+	np.save(f"{save_folder}/gaus_labels({batch_idx})", label_arr)
+
 	print(f"---SAVED BATCH {batch_idx}---")

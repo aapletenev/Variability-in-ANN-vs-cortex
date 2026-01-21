@@ -95,7 +95,8 @@ def load_prediction_data(folder_path_stochbin: str = 'predictions/8-27-2025/',
 def filter_x_region(region, stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
                      region_labels_df, sigma10_mean: np.ndarray,
                      sigma10_var: np.ndarray, 
-                     encoding: dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4}) -> dict:
+                     encoding: dict = {'V1':1, 'LM':2, 'AL':3, 'RL':4},
+                     session: int = 4, scan_idx: int = 7) -> dict:
     """
     Filter V1 region (region 1) from the prediction arrays.
     
@@ -115,6 +116,10 @@ def filter_x_region(region, stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
         Variance array for sigma10
     encoding : dict, default={'V1':1, 'LM':2, 'AL':3, 'RL':4}
         Mapping from brain area names to numeric labels
+    session : int, default=4
+        Session number to filter (if DataFrame has session column)
+    scan_idx : int, default=7
+        Scan index to filter (if DataFrame has scan_idx column)
         
     Returns:
     --------
@@ -127,11 +132,22 @@ def filter_x_region(region, stochbin_mean: np.ndarray, stochbin_var: np.ndarray,
     """
     # Extract brain_area column and encode to numeric labels
     if hasattr(region_labels_df, 'brain_area'):
-        # It's a DataFrame - extract and encode the brain_area column
-        stochbin_label = region_labels_df['brain_area'].map(encoding).values
-    elif hasattr(region_labels_df, 'map'):
+        # It's a DataFrame - check if we need to filter by session/scan
+        if 'session' in region_labels_df.columns and 'scan_idx' in region_labels_df.columns:
+            # Filter to specific session and scan
+            filtered_df = region_labels_df[(region_labels_df['session'] == session) & 
+                                          (region_labels_df['scan_idx'] == scan_idx)]
+            # Get expected number of neurons from data shape
+            expected_neurons = stochbin_mean.shape[-1]
+            # Take only the first expected_neurons rows (predictions may be on a subset)
+            filtered_df = filtered_df.head(expected_neurons)
+            stochbin_label = filtered_df['brain_area'].replace(encoding).infer_objects(copy=False).values
+        else:
+            # Just extract brain_area column directly
+            stochbin_label = region_labels_df['brain_area'].replace(encoding).infer_objects(copy=False).values
+    elif hasattr(region_labels_df, 'replace'):
         # It's a Series - encode it directly
-        stochbin_label = region_labels_df.map(encoding).values
+        stochbin_label = region_labels_df.replace(encoding).infer_objects(copy=False).values
     else:
         # It's already a numpy array
         stochbin_label = region_labels_df
