@@ -119,6 +119,10 @@ plt.savefig(wd + '/plots/Anton/poisson_raster4.pdf')
 
 
 ##################gifs#######################
+#import the packacke fo giffs imageio
+import imageio
+
+
 images = np.load('image_arr_anton(first100images).npy')
 
 image_Bern =  process_images_batched(
@@ -161,6 +165,19 @@ image_Gaus =  process_images_batched(
     return_sum_over_frames = False
 )
 imageio.mimsave(wd + '/plots/Anton/Gaus.gif', image_Gaus[0,0,:,:,:], duration=0.033, loop=0)
+
+##now with sigma = 300
+image_Gaus_high_sigma =  process_images_batched(
+        images[19:20],
+        num_trials = 10,
+        num_frames = 15,
+        noise_type = "dynamic",
+        stochastic_bin_param = False,
+        sigma= 300,
+    return_sum_over_frames = False
+)
+
+imageio.mimsave(wd + '/plots/Anton/Gaus_high_sigma.gif', image_Gaus_high_sigma[0,0,:,:,:], duration=0.033, loop=0)
 
 
 #now create an artificial image with 144,256 pixels where the pixel values increase linearly from 0 to 255 and then again 0 ... 255 and so on
@@ -295,8 +312,14 @@ mean_Bern =  get_neurons_of_area(np.load(wd + string_path + 'mean/Bern.npy'), la
 mean_Gaus =  get_neurons_of_area(np.load(wd + string_path + 'mean/Gaus_10.npy'), labels)
 mean_no_noise =  get_neurons_of_area(np.load(wd + string_path + 'mean/no_noise.npy'), labels)
 
+#all > 100 spikes - nan mask
+mean_Bern[mean_Bern > 100] = np.nan
+mean_Gaus[mean_Gaus > 100] = np.nan
+mean_no_noise[mean_no_noise > 100] = np.nan
 
-#make a function of subplots to avoid code repetition
+
+
+
 
 
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))

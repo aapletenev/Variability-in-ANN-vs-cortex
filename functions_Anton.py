@@ -1207,12 +1207,13 @@ def plot_mean_comparison(ax, mean_no_noise, mean_with_noise, title, color):
                s=1,
                alpha=0.1)
     #add regression line
-    slope, intercept, r_value, p_value, std_err = stats.linregress(mean_no_noise.flatten(), mean_with_noise.flatten())
+    mask = np.isfinite(mean_no_noise) & np.isfinite(mean_with_noise)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(mean_no_noise[mask].flatten(), mean_with_noise[mask].flatten())
     x_vals = np.array([0, 100])
     y_vals = intercept + slope * x_vals
     ax.plot(x_vals, y_vals, color='red', linestyle='-', label=f'Regression line (slope={slope:.2f})')
-    ax.set_xlabel('Mean Prediction (No Noise)', fontsize=16)
-    ax.set_ylabel('Mean Prediction (With Noise)', fontsize=16)
+    ax.set_xlabel('Mean spike count (No Noise)', fontsize=16)
+    ax.set_ylabel('Mean spike count (With Noise)', fontsize=16)
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.plot([0, 100], [0, 100], color='black', linestyle='--')
