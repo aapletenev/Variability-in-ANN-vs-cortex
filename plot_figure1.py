@@ -479,12 +479,12 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     ax = fig.add_subplot(inner_tl[1, 1])
     ax.loglog(xg, yg, '.', label='Data', alpha=0.1)
     if len(xg_fit_log): ax.loglog(xg_fit_log, yg_fit_log, 'r-', label='Fit')
-    ax.plot([xg.min(), xg.max()], [xg.min(), xg.max()], 'k--', alpha=0.5)
+    ax.plot([0, xg.max()], [0, xg.max()], 'k--', alpha=0.5)
     ax.set_xlabel('Mean Spike Count')
     if res_g:
         ax.text(0.01, 0.99, f"a={np.exp(res_g.intercept):.1e}\nb={res_g.slope:.1f}", 
                 transform=ax.transAxes, verticalalignment='top', horizontalalignment='left', fontsize=10)
-    ax.set_xlim(0.1, 100)
+    ax.set_xlim(1, 100)
     ax.set_ylim(10e-7, 10e2)
     
     # 3. Bernoulli Linear
@@ -504,13 +504,13 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     ax = fig.add_subplot(inner_tl[1, 0])
     ax.loglog(xb, yb, '.', color='tab:orange', label='Data', alpha=0.1)
     if len(xb_fit_log): ax.loglog(xb_fit_log, yb_fit_log, 'r-', label='Fit')
-    ax.plot([xb.min(), xb.max()], [xb.min(), xb.max()], 'k--', alpha=0.5)
+    ax.plot([0, xb.max()], [0, xb.max()], 'k--', alpha=0.5)
     ax.set_xlabel('Mean Spike Count')
     ax.set_ylabel("Variance in Spike Counts")
     if res_b:
         ax.text(0.01, 0.99, f"a={np.exp(res_b.intercept):.1e}\nb={res_b.slope:.1f}", 
                 transform=ax.transAxes, verticalalignment='top', horizontalalignment='left', fontsize=10)
-    ax.set_xlim(0.1, 100)
+    ax.set_xlim(1, 100)
     ax.set_ylim(10e-6, 10e2)
     
     # ==============================================================================
@@ -600,7 +600,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     if res_ga:
         ax.text(0.01, 0.99, f"a={np.exp(res_ga.intercept):.1e}\nb={res_ga.slope:.1f}",
                 transform=ax.transAxes, va='top', ha='left', fontsize=10)
-    ax.set_xlim(0.1, 100)
+    ax.set_xlim(1, 100)
     ax.set_ylim(10e-7, 10e2)
     
     # 3. Bernoulli Linear
@@ -627,7 +627,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     if res_ba:
         ax.text(0.01, 0.99, f"a={np.exp(res_ba.intercept):.1e}\nb={res_ba.slope:.1f}",
                 transform=ax.transAxes, va='top', ha='left', fontsize=10)
-    ax.set_xlim(0.1, 100)
+    ax.set_xlim(1, 100)
     ax.set_ylim(10e-6, 10e2)
     
     # ==============================================================================

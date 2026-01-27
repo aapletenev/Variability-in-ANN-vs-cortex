@@ -1,16 +1,18 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from figure1_utils import figure1_collection
+from figure1_utils import figure1_collection, filter_x_region
 from plot_figure1 import plot_figure1
+
 
 # ==============================================================================
 # LOAD/PROCESS DATA - COMPLETE WORKFLOW
 # ==============================================================================
 
 # Path where predictions are stored
-path = "predictions/test_predictions(1-8-26)"
-test_region = 2
+#path = "predictions/test_predictions(1-8-26)"
+path = "predictions/final predictions"
+test_region = 1
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -72,7 +74,7 @@ sigma10_sum = np.sum(gaus_predictions, axis=1)   # Shape: (num_images, num_neuro
 pixel_data = figure1_collection(
     stochbin_sum=stochbin_sum,
     sigma10_sum=sigma10_sum,
-    num_imgs=5,
+    num_imgs=50,
     num_noise_seeds=100,
     num_frames=15,
     img_height=144,
@@ -95,6 +97,17 @@ regions_df = pd.read_csv(path_regions_csv)
 region_name_map = {1: 'V1', 2: 'LM', 3: 'AL', 4: 'RL'}
 print(f"\nFiltering for region {test_region} ({region_name_map[test_region]})")
 
+##find the topk neurons with highest median of the mean
+filtered = filter_x_region(test_region, stochbin_meanv1, stochbin_varv1, regions_df,
+                              sigma10_meanv1, sigma10_varv1
+                              )
+median_Bern = np.nanmedian(filtered['v1mean_stochbin'], axis=0)
+median_Sigma10 = np.nanmedian(filtered['v1mean_sigma10'], axis=0)
+indices = np.intersect1d(np.argsort(median_Bern)[-100:], np.argsort(median_Sigma10)[-100:])
+index = indices[-1]
+#V1 index 3350
+
+
 fig = plot_figure1(f"testjosh_jan21(region_{region_name_map[test_region]})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
@@ -103,7 +116,7 @@ fig = plot_figure1(f"testjosh_jan21(region_{region_name_map[test_region]})",
     pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
     regions_df, test_region,
-    ve_thresh=0.1, neuron_idx=0, savefig=True
+    ve_thresh=0.1, neuron_idx=index, savefig=True
 )
 
 print("\n[SUCCESS] Figure 1 generated successfully!")
