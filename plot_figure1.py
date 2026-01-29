@@ -743,10 +743,10 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         model = LinearRegression(fit_intercept=False).fit(bnoise_mean.reshape(-1,1), bnoise_var)
         y_pred_br = model.predict(bnoise_mean.reshape(-1,1))
         ax.plot(bnoise_mean, y_pred_br, color = "black", alpha=0.4)
-    if x_pooled_b is not None:
-        ax.plot(x_pooled_b, y_pooled_b, 'k--', linewidth=2, label=f'Pooled: a={a_glob_st_lin:.2e}, b={b_glob_st_lin:.2f}')
-    ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
-             horizontalalignment='left', fontsize=10)
+    # if x_pooled_b is not None:
+        #ax.plot(x_pooled_b, y_pooled_b, 'k--', linewidth=2, label=f'Pooled: a={a_glob_st_lin:.2e}, b={b_glob_st_lin:.2f}')
+    # ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
+    #          horizontalalignment='left', fontsize=10)
     ax.set_ylabel("Variance in Pixel Value")
     ax.set_title("Bernoulli Noise")
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
@@ -760,10 +760,10 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         model = LinearRegression(fit_intercept=False).fit(fb_mean_relu.reshape(-1,1), fb_var_relu)
         y_pred_br = model.predict(fb_mean_relu.reshape(-1,1))
         ax.plot(fb_mean_relu, y_pred_br, color = "black", alpha=0.4)
-    if x_pooled_br is not None:
-        ax.plot(x_pooled_br, y_pooled_br, 'k--', linewidth=2, label=f'Pooled: a={a_glob_st_lin:.2e}, b={b_glob_st_lin:.2f}')
-    ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
-             horizontalalignment='left', fontsize=10)
+    # if x_pooled_br is not None:
+        #ax.plot(x_pooled_br, y_pooled_br, 'k--', linewidth=2, label=f'Pooled: a={a_glob_st_lin:.2e}, b={b_glob_st_lin:.2f}')
+    # ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
+    #          horizontalalignment='left', fontsize=10)
     ax.set_xlabel("Mean Pixel Value")
     ax.set_ylabel("Variance in Pixel Value")
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
@@ -778,10 +778,10 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         model = LinearRegression(fit_intercept=False).fit(gnoise_mean.reshape(-1,1), gnoise_var)
         y_pred_br = model.predict(gnoise_mean.reshape(-1,1))
         ax.plot(gnoise_mean, y_pred_br, color = "black", alpha=0.4)
-    if x_pooled_g is not None:
-        ax.plot(x_pooled_g, y_pooled_g, 'k--', linewidth=2, label=f'Pooled: a={a_glob_sg_lin:.2e}, b={b_glob_sg_lin:.2f}')
-    ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
-             horizontalalignment='left', fontsize=10)
+    # if x_pooled_g is not None:
+        #ax.plot(x_pooled_g, y_pooled_g, 'k--', linewidth=2, label=f'Pooled: a={a_glob_sg_lin:.2e}, b={b_glob_sg_lin:.2f}')
+    # ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
+    #          horizontalalignment='left', fontsize=10)
     ax.set_title("Gaussian Noise")
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.set_ylim(0, 6000)
@@ -796,10 +796,10 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         model = LinearRegression(fit_intercept=False).fit(fg_mean_relu.reshape(-1,1), fg_var_relu)
         y_pred_br = model.predict(fg_mean_relu.reshape(-1,1))
         ax.plot(fg_mean_relu, y_pred_br, color = "black", alpha=0.4)
-    if x_pooled_gr is not None:
-        ax.plot(x_pooled_gr, y_pooled_gr, 'k--', linewidth=2, label=f'Pooled: a={a_glob_sg_lin:.2e}, b={b_glob_sg_lin:.2f}')
-    ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
-             horizontalalignment='left', fontsize=10)
+    # if x_pooled_gr is not None:
+        #ax.plot(x_pooled_gr, y_pooled_gr, 'k--', linewidth=2, label=f'Pooled: a={a_glob_sg_lin:.2e}, b={b_glob_sg_lin:.2f}')
+    # ax.text(0.01, 0.99, f"ff={model.coef_[0]:.1f}", transform=ax.transAxes, verticalalignment='top',
+    #          horizontalalignment='left', fontsize=10)
     ax.set_xlabel("Mean Pixel Value")
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.ticklabel_format(axis='y', style='scientific', scilimits=(0, 0))
