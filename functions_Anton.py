@@ -1152,7 +1152,7 @@ def save_predictions(data, path, filename, dirs = ['frames', 'sum', 'mean', 'var
         np.save(path + dir + '/' + filename, data[i])
 
 
-def plot_spike_comparison(ref_array, title_text, stack_array=None, line_color='blue', font_scale=1.0, ax=None):
+def plot_spike_comparison(ref_array, title_text, stack_array=None, line_color='blue', font_scale=1.0, ylim = None, ax=None):
     """
     Plots a single reference line (black). Optionally plots a stack of background lines.
     Can be used as a standalone plot or as part of a subplot.
@@ -1199,6 +1199,8 @@ def plot_spike_comparison(ref_array, title_text, stack_array=None, line_color='b
         plt.tight_layout()
         plt.show()
 
+    if ylim is not None:
+        ax.set_ylim((0,ylim))
     return ax
 
 def plot_mean_comparison(ax, mean_no_noise, mean_with_noise, title, color):

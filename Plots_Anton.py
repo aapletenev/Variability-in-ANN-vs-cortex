@@ -245,68 +245,15 @@ plt.savefig(wd + '/plots/Anton/sigma_vs_median_variance2.pdf')
 
 
 
-########within trial dynamic############
-
-string_path = '/predictions/Anton/'
-#data is now of shape (num_images, num_noise, num_frames, num_neurons), labels is of shape (num_images, num_neurons), I need to select neurons with area == 1
-Spike_frames_Bern = np.load(wd + string_path + 'frames/Bern.npy')
-Spike_frames_noise_free = np.load(wd + string_path + 'frames/no_noise.npy')
-Spike_frames_Gaus = np.load(wd + string_path + 'frames/Gaus_10.npy')
-
-plot_spike_comparison(Spike_frames_noise_free[3, 0, :, 13], "",
-                      Spike_frames_Bern[3,0:4,:, 13], 'white', font_scale=1.5)
-
-plt.savefig(wd + '/plots/Anton/spike_comparison_neuron0.pdf')
-
-
-plot_spike_comparison(pred_arrs_const[0][3, 0, :, 13], "Bernoulli noise",
-                      Spike_frames_Bern[3,0:1,:, 13], 'tab:orange', font_scale=1.5)
-
-plt.savefig(wd + '/plots/Anton/spike_comparison_Bern_neuron1.pdf')
-
-plot_spike_comparison(pred_arrs_const[0][3, 0, :, 13], "Bernoulli noise",
-                      Spike_frames_Bern[3,0:2,:, 13], 'tab:orange', font_scale=1.5)
-
-plt.savefig(wd + '/plots/Anton/spike_comparison_Bern_neuron2.pdf')
-
-plot_spike_comparison(pred_arrs_const[0][3, 0, :, 13], "Bernoulli noise",
-                      Spike_frames_Bern[3,0:3,:, 13], 'tab:orange', font_scale=1.5)
-
-plt.savefig(wd + '/plots/Anton/spike_comparison_Bern_neuron3.pdf')
-
-
-
-plot_spike_comparison(pred_arrs_const[0][3, 0, :, 13], "Gaussian noise",
-                      Spike_frames_Gaus[3,0:3,:, 13], 'tab:blue', font_scale=1.5)
-plt.savefig(wd + '/plots/Anton/spike_comparison_Gaus_neuron3.pdf')
-
-
-
-
-plt.plot(pred_arrs_const[0][3, 0, :, 13]
-         #color black
-         , color='black',
-         #y axis labels
-            label='Neuron 0'
-            )
-
-
-
-plt.plot(pred_arrs_Bern[0][0, 0, :, 13])
-plt.plot(pred_arrs_Bern[0][0, 1, :, 13])
-plt.plot(pred_arrs_Bern[0][0, 2, :, 13])
-
-
-
 #####mean noise vs mean no noise plots####
-##load the data
 wd = os.getcwd()
 string_path = '/predictions/Anton/'
-
-#load only means for Bernoulli, Gausian and no noise
-#load labels
-
 labels = np.load(wd + string_path + 'label/Bern.npy')
+#data is now of shape (num_images, num_noise, num_frames, num_neurons), labels is of shape (num_images, num_neurons), I need to select neurons with area == 1
+Spike_frames_Bern = get_neurons_of_area(np.load(wd + string_path + 'frames/Bern.npy'), labels)
+Spike_frames_noise_free = get_neurons_of_area(np.load(wd + string_path + 'frames/no_noise.npy'), labels)
+Spike_frames_Gaus = get_neurons_of_area(np.load(wd + string_path + 'frames/Gaus_10.npy'), labels)
+
 
 mean_Bern =  get_neurons_of_area(np.load(wd + string_path + 'mean/Bern.npy'), labels)
 mean_Gaus =  get_neurons_of_area(np.load(wd + string_path + 'mean/Gaus_10.npy'), labels)
@@ -318,6 +265,13 @@ mean_Gaus[mean_Gaus > 100] = np.nan
 mean_no_noise[mean_no_noise > 100] = np.nan
 
 
+#find neurons indexes which mean no noise is not different than mean with Bernoulli noise (difference < 1 ) and mean with no noise > 10
+mask = (np.abs(mean_no_noise - mean_Bern) < 1) & (mean_no_noise > 10)
+#return the indexes mask is 2D so the indexes is also
+indexes = np.where(mask)
+i = 500
+index1 = indexes[0][i]  #take the first neuron that satisfies the condition
+index2 = indexes[1][i]
 
 
 
@@ -325,10 +279,10 @@ mean_no_noise[mean_no_noise > 100] = np.nan
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))
 
 # --- Row 1:
-plot_spike_comparison(Spike_frames_noise_free[3, 0, :, 13], 'Bernoulli Noise',
-                      Spike_frames_Bern[3,:,:, 13], 'tab:orange', font_scale=1.5, ax=axes[0,0])
-plot_spike_comparison(Spike_frames_noise_free[3, 0, :, 13], 'Gaussian Noise (σ=10)',
-                      Spike_frames_Gaus[3,:,:, 13], 'tab:blue', font_scale=1.5, ax=axes[0,1])
+plot_spike_comparison(Spike_frames_noise_free[index1, 0, :, index2], 'Bernoulli Noise',
+                      Spike_frames_Bern[index1,:,:, index2], 'tab:orange', font_scale=1.5, ax=axes[0,0])
+plot_spike_comparison(Spike_frames_noise_free[index1, 0, :, index2], 'Gaussian Noise (σ=10)',
+                      Spike_frames_Gaus[index1,:,:, index2], 'tab:blue', font_scale=1.5, ylim = np.max(Spike_frames_Bern[index1,:,:, index2]), ax=axes[0,1])
 
 # --- Row 2:
 plot_mean_comparison(axes[1,0], mean_no_noise, mean_Bern, '', 'tab:orange')
