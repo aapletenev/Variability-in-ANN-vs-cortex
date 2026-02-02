@@ -5,7 +5,7 @@ import random
 import pandas as pd
 from datetime import datetime
 
-def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_images: bool = False):
+def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_images: bool = False, save_path = None):
     """
     Load and process n random images from an ImageNet-like directory structure.
     Returns a NumPy array of images and a DataFrame with image metadata.
@@ -15,6 +15,7 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
         n (int): Number of random images to process.
         test_train (bool): Whether or not to use train directory (False would be val), defaults to train.
         save_images (bool): Whether or not to save images to numpy file, defaults to False.
+        save_path: Path to save images and metadata to, ensure it is formatted as "folder1/folder2" and NOT "folder1/folder2/" 
     Returns:
         tuple: (np.ndarray, pd.DataFrame)
             - Array of shape (n, 144, 256) containing n grayscale images.
@@ -81,13 +82,22 @@ def load_random_images(path_imagenet: str, n: int, train_dir: bool = True, save_
     
     print(f"We wanted {n} random images and got return stack of shape {return_stack.shape}")
 
-    if save_images: np.save(f'image_stack({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', return_stack)
+    if save_images:
+        if save_path is not None: 
+            np.save(f'{save_path}/image_stack({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', return_stack)
+            np.save(f'{save_path}/metadata({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', metadata_df)
+
+        else: 
+            np.save(f'image_stack({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', return_stack)
+            np.save(f'metadata({datetime.now().month}-{datetime.now().day}-{datetime.now().year})', metadata_df)
+
     return return_stack, metadata_df
 
 # ex
-#path_imagenet_josh = 'C://Users//joshf//downloads//imagenet-mini'
+path_imagenet_josh = 'imagenetmini/imagenet-mini'
 
-#josh_n = 100 
-#images, metadata = load_random_images(path_imagenet = path_imagenet_josh, n = josh_n, train_dir = True, save_images = True)
-#print(metadata.head())
+josh_n = 1000 
+images, metadata = load_random_images(path_imagenet = path_imagenet_josh, n = josh_n, 
+                                      train_dir = True, save_images = True, save_path="image_stacks/final_image_stack")
+print(metadata.head())
 

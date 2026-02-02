@@ -760,14 +760,14 @@ def boxplots(means, vars, main_title: str, savefig: bool = False):
     else:
         plt.show()
 
-def smooth_func(x, m, b): # used for regression in lineplots_4x4
+def smooth_func(x, a, b): # used for regression in lineplots_4x4
 
     """    
     Parameters
     ----------
     x : float or np.ndarray
         Input value(s) along the x-axis
-    m : float
+    a : float
         Scaling parameter
     b : float
         Growth rate parameter
@@ -777,9 +777,9 @@ def smooth_func(x, m, b): # used for regression in lineplots_4x4
     float or np.ndarray
         Function value(s) f(x)
     """
-    return (m / b) * (np.log1p(np.exp(b * x)) - np.log(2) - (b * x) / 2)
+    return a * (x**b)
 #---change function here?---
-def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in range(16)], savefig = False, logspace = False):
+def lineplots_4x4(main_title, mean_masked, var_masked, bern: bool, neurons = [i for i in range(16)], savefig = False, logspace = False):
     """
     Parameters
     ----------
@@ -806,7 +806,8 @@ def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in ran
         ax = axes[i, j]
         
         ax.scatter(mean_masked[..., neuron][:10], var_masked[..., neuron][:10], color = 'black', alpha = 0.5, marker = '.', label = 'predicted response (gray frames)')
-        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'b', alpha = 0.3, marker = '.', label = 'predicted response (imagenet)')
+        ax.scatter(mean_masked[..., neuron][10:], var_masked[..., neuron][10:], color = 'tab:orange' if bern else 'tab:blue', 
+                   alpha = 0.3, marker = '.', label = 'predicted response (imagenet)')
 
         # regression
         mask = ~np.isnan(mean_masked[..., neuron])
@@ -817,7 +818,7 @@ def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in ran
         y_pred = smooth_func(np.linspace(0, np.max(x_nonan), 100), params[0], params[1])
         ax.plot(np.linspace(0, np.max(x_nonan), 100), y_pred, color = 'r', label = 'smooth function regression', alpha = 0.7)
         
-        ax.text(0.01, 0.99, f'neuron: {neuron+1}\nm: {params[0]:.3f}\nb: {params[1]:.3f}', verticalalignment = 'top', horizontalalignment = 'left', 
+        ax.text(0.01, 0.99, f'neuron: {neuron+1}\na: {params[0]:.3f}\nb: {params[1]:.3f}', verticalalignment = 'top', horizontalalignment = 'left', 
                 transform = ax.transAxes)
         if i == 3: ax.set_xlabel('Mean Predicted\nSpike Count')
         if j == 0: ax.set_ylabel('Variance in\nPredicted Spike Count')
@@ -827,6 +828,8 @@ def lineplots_4x4(main_title, mean_masked, var_masked, neurons = [i for i in ran
         if logspace: 
             ax.set_xscale('log')
             ax.set_yscale('log')
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 100)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.02, 1.08), ncol=1)    
     plt.tight_layout()
