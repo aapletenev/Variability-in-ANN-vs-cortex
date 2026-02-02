@@ -1,7 +1,7 @@
 #%matplotlib qt
 import numpy as np
 from numpy import full
-from prediction import make_predictions
+from prediction_Anton import make_predictions
 import time
 import tracemalloc
 from random_images import load_random_images

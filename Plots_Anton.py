@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import matplotlib.ticker as ticker
 from scipy import linalg
-from prediction import make_predictions
+from prediction_Anton import make_predictions
 from functions_Anton import *
 from matplotlib.ticker import MaxNLocator
 
