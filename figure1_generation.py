@@ -12,7 +12,8 @@ from plot_figure1 import plot_figure1
 # Path where predictions are stored
 #path = "predictions/test_predictions(1-8-26)"
 path = "predictions/final predictions"
-test_region = 2
+test_region = 1
+ADD_Poisson = True  # Whether to add Poisson on top
 
 # Initialize empty lists to collect arrays
 bern_arrays = []
@@ -45,6 +46,16 @@ gaus_predictions = np.concatenate(gaus_arrays, axis=0) if gaus_arrays else np.ar
 print(f"bern shape: {bern_predictions.shape}\n"
     f"gaus shape: {gaus_predictions.shape}")
 
+if ADD_Poisson:
+    print("\nAdding Poisson noise to ...")
+    bern_predictions = np.random.poisson(lam=bern_predictions)
+    gaus_predictions = np.random.poisson(lam=gaus_predictions)
+
+
+    print("Poisson noise added.\n")
+
+
+
 # ==============================================================================
 # FIGURE 1 GENERATION - COMPLETE WORKFLOW
 # ==============================================================================
@@ -61,6 +72,14 @@ stochbin_varv1 = np.var(bern_predictions, axis=1)    # Shape: (num_images, num_n
 sigma10_meanv1 = np.mean(gaus_predictions, axis=1)   # Shape: (num_images, num_neurons)
 sigma10_varv1 = np.var(gaus_predictions, axis=1)     # Shape: (num_images, num_neurons)
 
+#nan for all if mean > 100
+stochbin_meanv1[stochbin_meanv1>100] = np.nan
+stochbin_varv1 [stochbin_meanv1>100] = np.nan
+sigma10_meanv1[sigma10_meanv1>100] = np.nan
+sigma10_varv1 [sigma10_meanv1>100] = np.nan
+
+
+
 print(f"\nNeuron data shapes:")
 print(f"  Stochbin mean: {stochbin_meanv1.shape}")
 print(f"  Sigma10 mean: {sigma10_meanv1.shape}")
@@ -74,7 +93,7 @@ sigma10_sum = np.sum(gaus_predictions, axis=1)   # Shape: (num_images, num_neuro
 pixel_data = figure1_collection(
     stochbin_sum=stochbin_sum,
     sigma10_sum=sigma10_sum,
-    num_imgs=50,
+    num_imgs=5,
     num_noise_seeds=100,
     num_frames=15,
     img_height=144,
@@ -108,6 +127,11 @@ index = indices[-1]
 #V1 index 3350
 
 
+plot_p = {"Bern_spike_limit":150, "Gaus_spike_limit":150,
+        "Gaus_log_limit":(0.3,300), "Bern_log_limit":(0.3,300),
+        "Kernel_b_limit":(0.8,1.4), "Kernel_r2_ind_xlim":0.6,
+          "Kernel_r2_all_xlim":0.6, "Kernel_r2_all_ylim":30}
+
 fig = plot_figure1(f"testjosh_jan21(region_{region_name_map[test_region]})",
     stochbin_meanv1, stochbin_varv1,
     sigma10_meanv1, sigma10_varv1,
@@ -116,7 +140,8 @@ fig = plot_figure1(f"testjosh_jan21(region_{region_name_map[test_region]})",
     pixel_data['fg_mean_relu'], pixel_data['fg_var_relu'],
     pixel_data['fb_mean_relu'], pixel_data['fb_var_relu'],
     regions_df, test_region,
-    ve_thresh=0.1, neuron_idx=index, savefig=True
+    ve_thresh=0.1, neuron_idx=index, savefig=True,
+    plot_parameters=plot_p
 )
 
 print("\n[SUCCESS] Figure 1 generated successfully!")

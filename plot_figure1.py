@@ -244,7 +244,10 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
                  gnoise_mean, gnoise_var, bnoise_mean, bnoise_var,
                  fg_mean_relu, fg_var_relu, fb_mean_relu, fb_var_relu,
                  region_labels_df=None, region_label=1, ve_thresh=0.1, 
-                 neuron_idx=2, savefig=False):
+                 neuron_idx=2, savefig=False,
+                 plot_parameters = {"Bern_spike_limit":100, "Gaus_spike_limit":5,
+                                    "Bern_log_limit":(10e-6,10e2), "Gaus_log_limit":(10e-7,10e2),
+                                    "Kernel_b_limit":(-1,6), "Kernel_r2_ind_xlim":0, "Kernel_r2_all_xlim":0, "Kernel_r2_all_ylim":7}):
     """
     Create Figure 1 with all subpanels.
     
@@ -469,7 +472,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         ax.text(0.01, 0.99, f"a={params_g[0]:.1e}\nb={params_g[1]:.1f}", 
                 transform=ax.transAxes, verticalalignment='top', horizontalalignment='left', fontsize=10)
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 5)
+    ax.set_ylim(0, plot_parameters["Gaus_spike_limit"])
     
     bbox = ax.get_position()
     fig.text(bbox.x1 - .17, bbox.y1 + 0.02, f"Select V1 Neuron\na · mean^b",
@@ -485,7 +488,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         ax.text(0.01, 0.99, f"a={np.exp(res_g.intercept):.1e}\nb={res_g.slope:.1f}", 
                 transform=ax.transAxes, verticalalignment='top', horizontalalignment='left', fontsize=10)
     ax.set_xlim(1, 100)
-    ax.set_ylim(10e-7, 10e2)
+    ax.set_ylim(plot_parameters["Gaus_log_limit"][0], plot_parameters["Gaus_log_limit"][1])
     
     # 3. Bernoulli Linear
     ax = fig.add_subplot(inner_tl[0, 0])
@@ -495,7 +498,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     ax.set_ylabel('Variance in Spike Counts')
     ax.set_title("Bernoulli Noise")
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    ax.set_ylim(0, plot_parameters["Bern_spike_limit"])
     if len(xb_fit_lin):
         ax.text(0.01, 0.99, f"a={params_b[0]:.1e}\nb={params_b[1]:.1f}", 
                 transform=ax.transAxes, verticalalignment='top', horizontalalignment='left', fontsize=10)
@@ -511,7 +514,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         ax.text(0.01, 0.99, f"a={np.exp(res_b.intercept):.1e}\nb={res_b.slope:.1f}", 
                 transform=ax.transAxes, verticalalignment='top', horizontalalignment='left', fontsize=10)
     ax.set_xlim(1, 100)
-    ax.set_ylim(10e-6, 10e2)
+    ax.set_ylim(plot_parameters["Bern_log_limit"][0], plot_parameters["Bern_log_limit"][1])
     
     # ==============================================================================
     # TOP RIGHT: All Neurons - 2x2 nested grid
@@ -585,7 +588,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     ax.text(0.01, 0.99, f"a={a_lin_g:.1e}\nb={b_lin_g:.1f}",
             transform=ax.transAxes, va='top', ha='left', fontsize=10)
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 5)
+    ax.set_ylim(0, plot_parameters["Gaus_spike_limit"])
     
     bbox = ax.get_position()
     fig.text(bbox.x1 - .17, bbox.y1 + 0.02, f"All Neurons\na · mean^b",
@@ -601,7 +604,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         ax.text(0.01, 0.99, f"a={np.exp(res_ga.intercept):.1e}\nb={res_ga.slope:.1f}",
                 transform=ax.transAxes, va='top', ha='left', fontsize=10)
     ax.set_xlim(1, 100)
-    ax.set_ylim(10e-7, 10e2)
+    ax.set_ylim(plot_parameters["Gaus_log_limit"][0], plot_parameters["Gaus_log_limit"][1])
     
     # 3. Bernoulli Linear
     ax = fig.add_subplot(inner_tr[0, 0])
@@ -611,7 +614,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     ax.set_title('Bernoulli Noise')
     ax.set_ylabel('Variance in Spike Counts')
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    ax.set_ylim(0, plot_parameters["Bern_spike_limit"])
     a_lin_b = params_ba_lin[0]
     b_lin_b = params_ba_lin[1]
     ax.text(0.01, 0.99, f"a={a_lin_b:.1e}\nb={b_lin_b:.1f}",
@@ -628,7 +631,7 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
         ax.text(0.01, 0.99, f"a={np.exp(res_ba.intercept):.1e}\nb={res_ba.slope:.1f}",
                 transform=ax.transAxes, va='top', ha='left', fontsize=10)
     ax.set_xlim(1, 100)
-    ax.set_ylim(10e-6, 10e2)
+    ax.set_ylim(plot_parameters["Bern_log_limit"][0], plot_parameters["Bern_log_limit"][1])
     
     # ==============================================================================
     # BOTTOM LEFT: KDE and Statistics - 2x2 nested grid
@@ -664,8 +667,8 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     """
     sns.kdeplot(stochbin_blist_lin[ve_idx_bern], label="Spike Count Space", color="tab:orange", ax=ax)
     sns.kdeplot(sigma10_blist_lin[ve_idx_gaus], color="tab:blue", ax=ax)
-    ax.set_xlim(-1, 6)
-    ax.set_title("power parameter (b)")
+    ax.set_xlim(plot_parameters["Kernel_b_limit"][0], plot_parameters["Kernel_b_limit"][1])
+    ax.set_title("Exponent (b)")
     
     ylim = ax.get_ylim()
     y_pos = ylim[0] + 0.99 * (ylim[1] - ylim[0])
@@ -704,6 +707,8 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     
     ax.axvline(x=ve_thresh, color="0.5", linestyle="dashdot")
     ax.set_title("Variance Explained\nIndividual Neuron Model")
+    ax.set_xlim(plot_parameters["Kernel_r2_ind_xlim"], 1)
+
     
     # [1,1] - R² PLOT (pooled/all neurons)
     ax = fig.add_subplot(inner[1, 1])
@@ -715,8 +720,8 @@ def plot_figure1(figure_name, stochbin_meanv1, stochbin_varv1, sigma10_meanv1, s
     
     ax.axvline(x=ve_thresh, color="0.5", linestyle="dashdot")
     ax.set_title("Variance Explained\nAll Neuron Model")
-    ax.set_xlim(0, 1.0)
-    ax.set_ylim(0, 7)
+    ax.set_xlim(plot_parameters["Kernel_r2_all_xlim"], 1)
+    ax.set_ylim(0,plot_parameters["Kernel_r2_all_ylim"])
     
     # [0,1] - Legend
     ax = fig.add_subplot(inner[0, 1])
