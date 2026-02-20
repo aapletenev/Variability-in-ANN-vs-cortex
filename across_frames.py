@@ -117,13 +117,15 @@ labels = np.load(wd + string_path + 'label/Bern.npy')
 Spike_frames_Bern = get_neurons_of_area(np.load(wd + string_path + 'frames/Bern.npy'), labels)
 Spike_frames_Gaus = get_neurons_of_area(np.load(wd + string_path + 'frames/Gaus_10.npy'), labels)
 
+#sum over frames to get total spikes per trial
+Spike_Bern = np.nansum(Spike_frames_Bern, axis=2)  #shape (num_images, num_noise, num_neurons)
+Spike_Gaus = np.nansum(Spike_frames_Gaus, axis=2)  #shape (num_images, num_noise, num_neurons)
+
 #Now substitute all values > 100 to NaN
 Spike_frames_Bern[Spike_frames_Bern > 100] = np.nan
 Spike_frames_Gaus[Spike_frames_Gaus > 100] = np.nan
 
-#sum over frames to get total spikes per trial
-Spike_Bern = np.nansum(Spike_frames_Bern, axis=2)  #shape (num_images, num_noise, num_neurons)
-Spike_Gaus = np.nansum(Spike_frames_Gaus, axis=2)  #shape (num_images, num_noise, num_neurons)
+
 
 ###mean,variance, fano factor
 Mean_frames_Bern = np.nanmean(Spike_frames_Bern, axis=1)  #mean across noise for each image and neuron and frame

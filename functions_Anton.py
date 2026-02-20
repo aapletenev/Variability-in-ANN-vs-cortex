@@ -2,7 +2,9 @@ import numpy as np
 from scipy import linalg
 from typing import Optional, Union, Tuple
 import os
+import matplotlib.ticker as ticker
 from matplotlib.ticker import MaxNLocator
+
 
 
 #####functions
@@ -196,7 +198,7 @@ def plot_scatter_noise_vs_signal(ax, noise_cor, signal_cor, noise_cor_top, signa
 def plot_hist_comparison(ax, noise_cor, noise_cor_top, nbins=30,
                          color='tab:blue',  # Controls the TOP neurons
                          title='Noise Correlation Distribution',
-                         xlabel='Noise Correlation',
+                         xlabel='Noise Correlation', legend_loc='upper left',
                          xlim=None):
     """
     Plots a dual-axis histogram onto a specific axis.
@@ -250,7 +252,7 @@ def plot_hist_comparison(ax, noise_cor, noise_cor_top, nbins=30,
         Patch(facecolor='white', edgecolor='black', label='All Neurons'),
         Patch(facecolor=color, alpha=0.6, label='Top 10% Neurons')
     ]
-    ax.legend(handles=legend_elements, loc='upper left')
+    ax.legend(handles=legend_elements, loc= legend_loc)
 
     # 9. Stats Text Box
     textstr = f'Mean (All): {mean_all:.3f}\nMean (Top 10%): {mean_top:.3f}'
@@ -263,16 +265,20 @@ def geometric_mean_pairwise(means):
     return np.sqrt(pairwise_products)
 
 
+
 def plot_dual_axis_boxplot(ax, data1, data2,
                            label1='Bernoulli', label2='Gaussian',
                            color1='tab:orange', color2='tab:blue',
                            title='Fano Factor Comparison',
                            xlabel='Frame', ylabel_suffix='Fano Factor',
                            show_outliers=False, whisk=(25, 75),
-                           ylim=None, xline=None, scale=1.0):
+                           ylim=None, xline=None, scale=1.0,
+                           use_dual_axis=True,
+                           show_xticks=True):  # <--- NEW ARGUMENT
     """
-    Plots two datasets on a specific axis (ax) using dual Y-axes.
-    Adapts to 3D (Samples, Frames, Neurons) or 2D (Frames, Neurons) inputs.
+    Plots two datasets on a specific axis (ax).
+    - use_dual_axis: Toggle between dual Y-axes or single shared Y-axis.
+    - show_xticks: Toggle visibility of X-axis ticks and labels.
     """
 
     # --- Font Scaling ---
@@ -289,27 +295,23 @@ def plot_dual_axis_boxplot(ax, data1, data2,
         if data.ndim == 3:
             n_frames = data.shape[1]
             return [clean_nans(data[:, i, :]) for i in range(n_frames)]
-
         elif data.ndim == 2:
             n_frames = data.shape[0]
             return [clean_nans(data[i, :]) for i in range(n_frames)]
-
         else:
             raise ValueError(f"Data must be 2D or 3D, but got {data.ndim}D")
 
     # 1. Prepare Data Lists
     plot_data1 = prepare_data(data1)
     plot_data2 = prepare_data(data2)
-
-    # Ensure both datasets have the same number of frames
     num_frames = len(plot_data1)
-    if len(plot_data2) != num_frames:
-        print(
-            f"Warning: Datasets have different frame counts ({len(plot_data1)} vs {len(plot_data2)}). Using {num_frames}.")
 
-    # 2. Setup Dual Axis
+    # 2. Setup Axes
     ax1 = ax
-    ax2 = ax1.twinx()
+    if use_dual_axis:
+        ax2 = ax1.twinx()
+    else:
+        ax2 = ax1
 
     # 3. Define Positions
     pos1 = np.arange(num_frames) - 0.15
@@ -317,12 +319,9 @@ def plot_dual_axis_boxplot(ax, data1, data2,
 
     # 4. Plot Boxplots
     box1 = ax1.boxplot(plot_data1, positions=pos1, widths=0.3,
-                       patch_artist=True, showfliers=show_outliers,
-                       whis=whisk)
-
+                       patch_artist=True, showfliers=show_outliers, whis=whisk)
     box2 = ax2.boxplot(plot_data2, positions=pos2, widths=0.3,
-                       patch_artist=True, showfliers=show_outliers,
-                       whis=whisk)
+                       patch_artist=True, showfliers=show_outliers, whis=whisk)
 
     # --- STYLING ---
     def style_boxplot(box_handle, fill_color):
@@ -334,42 +333,65 @@ def plot_dual_axis_boxplot(ax, data1, data2,
     style_boxplot(box1, color1)
     style_boxplot(box2, color2)
 
-    # --- AXIS FORMATTING ---
-    ax1.set_xlabel(xlabel, fontsize=s_label)
-
-    # Create the full range of ticks and labels
-    all_ticks = np.arange(num_frames)
-    all_labels = np.arange(1, num_frames + 1)
-
-    # Apply slicing [::2] to show every second tick/label
-    ax1.set_xticks(all_ticks[::2])
-    ax1.set_xticklabels(all_labels[::2], fontsize=s_tick)
-
+    # --- COMMON AXIS FORMATTING ---
     ax1.set_title(title, fontsize=s_title)
 
-    # Left Axis (Dataset 1)
-    ax1.set_ylabel(f'{ylabel_suffix} ({label1})', color=color1, fontweight='bold', fontsize=s_label)
-    ax1.tick_params(axis='y', labelcolor=color1, labelsize=s_tick)
-    ax1.spines['left'].set_color(color1)
-    ax1.spines['left'].set_linewidth(2)
-    ax1.spines['right'].set_visible(False)
+    # Handle X-Ticks and Label
+    if show_xticks:
+        ax1.set_xlabel(xlabel, fontsize=s_label)
+        all_ticks = np.arange(num_frames)
+        all_labels = np.arange(1, num_frames + 1)
+        ax1.set_xticks(all_ticks[::2])
+        ax1.set_xticklabels(all_labels[::2], fontsize=s_tick)
+    else:
+        # Hide ticks and tick labels
+        ax1.set_xticks([])
+        ax1.set_xticklabels([])
+        # Optional: You might want to hide the xlabel too if there are no ticks
+        # ax1.set_xlabel("")
 
-    # Right Axis (Dataset 2)
-    ax2.set_ylabel(f'{ylabel_suffix} ({label2})', color=color2, fontweight='bold', fontsize=s_label)
-    ax2.tick_params(axis='y', labelcolor=color2, labelsize=s_tick)
-    ax2.spines['right'].set_color(color2)
-    ax2.spines['right'].set_linewidth(2)
-    ax2.spines['left'].set_visible(False)
-
-    if ylim is not None:
-        ax1.set_ylim(bottom=ylim)
-        ax2.set_ylim(bottom=ylim)
     if xline is not None:
         ax1.axvline(xline, color='lightgray', linestyle='dashed', linewidth=1)
-        ax2.axvline(xline, color='lightgray', linestyle='dashed', linewidth=1)
+
+    # --- CONDITIONAL Y-AXIS FORMATTING ---
+    if use_dual_axis:
+        # Left Axis
+        ax1.set_ylabel(f'{ylabel_suffix} ({label1})', color=color1, fontweight='bold', fontsize=s_label)
+        ax1.tick_params(axis='y', labelcolor=color1, labelsize=s_tick)
+        ax1.spines['left'].set_color(color1)
+        ax1.spines['left'].set_linewidth(2)
+
+        # Right Axis
+        ax2.set_ylabel(f'{ylabel_suffix} ({label2})', color=color2, fontweight='bold', fontsize=s_label)
+        ax2.tick_params(axis='y', labelcolor=color2, labelsize=s_tick)
+        ax2.spines['right'].set_color(color2)
+        ax2.spines['right'].set_linewidth(2)
+
+        # Hide opposite spines
+        ax1.spines['right'].set_visible(False)
+        ax2.spines['left'].set_visible(False)
+
+        if ylim is not None:
+            ax1.set_ylim(bottom=ylim)
+            ax2.set_ylim(bottom=ylim)
+    else:
+        # Single Axis Mode
+        ax1.set_ylabel(ylabel_suffix, fontsize=s_label)
+        ax1.tick_params(axis='y', labelsize=s_tick)
+        ax1.spines['left'].set_color('black')
+        ax1.spines['right'].set_visible(False)
+
+        if ylim is not None:
+            ax1.set_ylim(bottom=ylim)
+
+        # Legend
+        legend_elements = [
+            Patch(facecolor=color1, edgecolor=color1, alpha=0.5, label=label1),
+            Patch(facecolor=color2, edgecolor=color2, alpha=0.5, label=label2)
+        ]
+        ax1.legend(handles=legend_elements, loc='best', fontsize=s_tick)
 
     return ax1, ax2
-
 
 def plot_single_axis_boxplot(ax, data1, data2,
                              label1='Bernoulli', label2='Gaussian',

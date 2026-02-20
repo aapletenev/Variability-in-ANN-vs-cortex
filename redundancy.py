@@ -16,12 +16,24 @@ from functions_Anton import *
 ############Start#################################
 ##load the data
 wd = os.getcwd()
+ADD_Poisson = True  # Whether to add Poisson on top
 
+if ADD_Poisson:
+    file_name_add = "_with_Poisson"
+else:
+    file_name_add = ""
 ####################1000 trials###################################
 path = wd + '/predictions/Anton/1000_trials/'
 labels = np.load(path + 'label/Bern_1000.npy')
 Spike_Bern_1000 = get_neurons_of_area(np.load(path + 'sum/Bern_1000.npy'), labels)
 Spike_Gaus_1000 = get_neurons_of_area(np.load(path + 'sum/Gaus_10_1000.npy'), labels)
+
+if ADD_Poisson:
+    Spike_Bern_1000 = np.random.poisson(lam=Spike_Bern_1000)
+    Spike_Gaus_1000 = np.random.poisson(lam=Spike_Gaus_1000)
+
+#set seed for reproducibility
+np.random.seed(42)
 
 nlist = [2, 5, 10, 20, 30, 50, 100, 200, 300, 500]
 FI_Bern_1000, FI_shuf_Bern_1000, N_Bern_1000, Image_pairs_1000 = compute_fisher_info_all(Spike_Bern_1000, n_image_pairs= 10, n_repeats=1000, n_list=nlist)
@@ -72,16 +84,16 @@ plot_scaling_metric(100*Redundancy_Gaus_1000, N_Gaus_1000, aggregation='median',
 #                     yline = 0, ylabel = "Redundant Information (abs. units)", ax= axes[2])
 
 plt.tight_layout()
-plt.savefig(wd +  '/plots/Anton/Fisher_Info_and_Redundancy_1000_trials.pdf')
+plt.savefig(wd +  '/plots/Anton/Fisher_Info_and_Redundancy_1000_trials'+file_name_add +'.pdf')
 
 
 
 
-fig, axes = plt.subplots(figsize=(1.2*8, 1.2*4))
-plot_scaling_metric(FI_Bern_1000/100, N_Bern_1000, aggregation='median', color = "tab:orange",
-                    title="Fisher Info in pixel space", ylim = 0, ax= axes, FI_pixel= FI_Pixel_Bern/100, scale = 1.5)
-plt.tight_layout()
-plt.savefig(wd +  '/plots/Anton/Fisher_Info_with_Pixel_1000_trials.pdf')
+# fig, axes = plt.subplots(figsize=(1.2*8, 1.2*4))
+# plot_scaling_metric(FI_Bern_1000/100, N_Bern_1000, aggregation='median', color = "tab:orange",
+#                     title="Fisher Info in pixel space", ylim = 0, ax= axes, FI_pixel= FI_Pixel_Bern/100, scale = 1.5)
+# plt.tight_layout()
+# plt.savefig(wd +  '/plots/Anton/Fisher_Info_with_Pixel_1000_trials.pdf')
 
 
 
